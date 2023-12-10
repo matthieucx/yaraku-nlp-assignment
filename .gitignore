@@ -17,6 +17,3 @@ docs/
 # IDE preferences
 .idea/
 .vscode/
-
-# Poetry files
-poetry.lock
