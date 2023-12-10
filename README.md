@@ -30,15 +30,15 @@ Navigate to http://localhost:8000/docs to access the Swagger UI and test the API
 - autopep8 is used for autoformating
 - flake8 is used for linting
 
-All 3 of them can be run using your IDE, which is recommended.
+All 3 of them can be run using your IDE, which is recommended. They can also be invoked from the CLI, using `poetry run <tool>`.
 
 Autoformating is executed as a pre-commit hook, ensuring a consistent style throughout the codebase.
 
 ### Pre-commit
 
-To install pre-commit hooks, run `pre-commit install`.
+To install pre-commit hooks, run `poetry run pre-commit install`.
 
-Pre-commit hooks will be run on staged files when commiting. You can run them whenever you want with `pre-commit run`.
+Pre-commit hooks will be run on staged files when commiting. You can run them whenever you want with `poetry run pre-commit run`.
 
 ## Docker
 
