@@ -1,6 +1,10 @@
 # Technical Decisions
 
-This file contains information motivating the technical decisions made in this project. Most of this information can be found in commits' comments, which have been used as discussions in pull requests.
+This file contains information motivating the technical decisions made in this project. Most of this information can be found in the comments of relevant commits.
+
+## Git workflow
+
+Given the scope of this project, and to facilitate reviewing its content after the assignment has been submitted, it has been kept on a single branch. Comments on commits serve the same role as the discussions on pull requests.
 
 ## Dependency management
 
