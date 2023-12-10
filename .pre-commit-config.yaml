@@ -5,7 +5,10 @@ repos:
     rev: v2.0.4
     hooks:
     -   id: autopep8
-        args: [--in-place, --max-line-length=120]
+        name: autopep8
+        entry: poetry run autopep8
+        language: system
+        types: [file, python]
 -   repo: https://github.com/python-poetry/poetry
     rev: '1.6.1'
     hooks:
