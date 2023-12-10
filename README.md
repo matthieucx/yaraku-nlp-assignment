@@ -32,18 +32,13 @@ Navigate to http://localhost:8000/docs to access the Swagger UI and test the API
 
 All 3 of them can be run using your IDE, which is recommended.
 
+Autoformating is executed as a pre-commit hook, ensuring a consistent style throughout the codebase.
+
 ### Pre-commit
 
-To install pre-commits, run `pre-commit install`.
+To install pre-commit hooks, run `pre-commit install`.
 
-Autoformating ensures a consistent style throughout the codebase. It makes sense as a pre-commit because:
-
-- All committed code will be formatted, streamlining parsing and reviewing
-- Autoformating does not prevent commits
-
-Pre-commits should not prevent commits as this hinders workflows. Linting and testing are blocking, requiring errors to be fixed. They are better used in a CI pipeline.
-
-Files modified by a pre-commit hook are not staged automatically, on purpose ([see this post by the tool creator](https://stackoverflow.com/questions/64309766/prettier-using-pre-commit-com-does-not-re-stage-changes/64309843#64309843)).
+Pre-commit hooks will be run on staged files when commiting. You can run them whenever you want with `pre-commit run`.
 
 ## Docker
 
