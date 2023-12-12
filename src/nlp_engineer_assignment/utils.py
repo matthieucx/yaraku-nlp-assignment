@@ -1,4 +1,5 @@
 import numpy as np
+from loguru import logger
 
 
 def count_letters(text: str) -> np.array:
@@ -69,3 +70,72 @@ def score(
         Accuracy of the predictions
     """
     return float(np.sum(golds == predictions)) / len(golds.flatten())
+
+
+def tokenize(
+        string: str,
+        vocabs: list[str] | set[str],
+        max_token_length: int = None,
+        verbose: bool = False
+) -> list[str]:
+    """Tokenize a string using a vocabulary list.
+
+    Tokenize by matching the longest possible substring at each position.
+    Substrings of up to `max_token_length` are considered.
+    Substrings not found in the vocabulary are replaced by `<UNK>`.
+
+    More efficient implementations could rely on a Trie structure for prefix search.
+
+    Parameters
+    ----------
+    string : str
+        Input string to tokenize.
+    vocabs : list[str] | set(str)
+        Vocabulary to use for tokenization.
+        Hashed to a set for efficient lookup.
+        Should be passed as a set if tokenizing a large number of strings.
+    max_token_length : int, optional
+        Maximum length of a token, by default None.
+        Set to the length of the longest string in the vocabulary if not provided.
+        Should be provided if tokenizing a large number of strings.
+
+    Returns
+    -------
+    list[str]
+        A list of the tokens found in the string.
+
+    """
+    if not vocabs or not string:
+        raise ValueError("Vocabulary and string must be non-empty.")
+
+    max_token_length = len(max(vocabs, key=len)
+                           ) if max_token_length is None else max_token_length
+    vocabs_set = set(vocabs) if isinstance(vocabs, list) else vocabs
+
+    tokens = []
+    current_index = 0
+
+    while current_index < len(string):
+        for len_substring in range(max_token_length, 0, -1):
+            if current_index + len_substring > len(string):
+                continue
+
+            substring = string[current_index:current_index + len_substring]
+
+            if substring in vocabs_set:
+                tokens.append(substring)
+                current_index += len_substring
+                break
+
+        # Else executes if the for loop was completed normally (i.e., no break)
+        # Here, if there was no match
+        else:
+            # Avoid adding consecutive UNK tokens
+            if not tokens or tokens[-1] != "<UNK>":
+                tokens.append("<UNK>")
+                if verbose:
+                    logger.info(
+                        "Found unknown token at position {pos} in string '{string}'", pos=current_index, string=string)
+            current_index += 1
+
+    return tokens
