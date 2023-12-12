@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import uvicorn
+from loguru import logger
 
 from nlp_engineer_assignment import count_letters, print_line, read_inputs, \
     score, train_classifier
@@ -14,7 +15,7 @@ def train_model():
     ###
 
     # Constructs the vocabulary as described in the assignment
-    vocabs = [chr(ord('a') + i) for i in range(0, 26)] + [' ']
+    vocabs = [chr(ord('a') + i) for i in range(0, 26)] + [' ']  # noqa: F841
 
     ###
     # Train
@@ -24,7 +25,7 @@ def train_model():
         os.path.join(cur_dir, "data", "train.txt")
     )
 
-    model = train_classifier(train_inputs)
+    model = train_classifier(train_inputs)  # noqa: F841
 
     ###
     # Test
@@ -54,11 +55,12 @@ def train_model():
 
 
 if __name__ == "__main__":
-    train_model()
-    uvicorn.run(
-        "nlp_engineer_assignment.api:app",
-        host="0.0.0.0",
-        port=8000,
-        log_level="info",
-        workers=1
-    )
+    with logger.catch():
+        train_model()
+        uvicorn.run(
+            "nlp_engineer_assignment.api:app",
+            host="0.0.0.0",
+            port=8000,
+            log_level="info",
+            workers=1
+        )
