@@ -1,6 +1,7 @@
 import torch
 import pytest
-from nlp_engineer_assignment.transformer import MultiHeadSelfAttention, ScaledDotProductAttention
+from nlp_engineer_assignment.transformer import MultiHeadSelfAttention, ScaledDotProductAttention, \
+    TransformerEncoderLayer
 
 
 def test_scaled_dot_product_attention_output_shape():
@@ -35,3 +36,14 @@ def test_multi_head_attention_assertion():
 
     assert "Embedding dimension must be divisible by the number of heads" in str(
         excinfo.value)
+
+
+def test_transformer_encoder_layer_output_shape():
+    batch_size, tokens, emb, heads, dim_ff = 8, 20, 64, 2, 256
+    model = TransformerEncoderLayer(emb, heads, dim_ff)
+
+    x = torch.rand(batch_size, tokens, emb)
+
+    output = model(x)
+    assert output.shape == (batch_size, tokens,
+                            emb), "Output shape is incorrect"

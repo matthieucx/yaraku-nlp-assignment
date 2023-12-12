@@ -126,6 +126,79 @@ class MultiHeadSelfAttention(nn.Module):
         return self.merge_heads(concat_heads)
 
 
+class TransformerEncoderLayer(nn.Module):
+    """Transformer Encoder Layer as defined in `Attention Is All You Need <https://arxiv.org/abs/1706.03762>`_.
+
+    The layer is made up of two sub-layers:
+    - a multi-head attention mechanism
+    - a position-wise (applied to each token) fully connected feed-forward network, source of non-linearity
+
+    Between these sub-layers, residual connections help preserve the gradient flow.
+    Layer normalization stabilizes the training process. Both allow for deeper networks.
+
+    Regularization is achieved through dropout.
+
+    Parameters
+    ----------
+    emb : int
+        Embedding dimension of the input.
+    heads : int
+        Number of attention heads.
+    dim_ff : int
+        Dimension of the feedforward layer (d_ff). Set to 4 * emb in the paper.
+        dim_ff is typically bigger than emb, allowing for a more expressive transformation.
+    dropout_rate : float
+        Dropout rate.
+
+    """
+
+    def __init__(self, emb: int, heads: int, dim_ff: int = None, dropout_rate: float = 0.1):
+        super().__init__()
+
+        self.emb = emb
+        self.heads = heads
+        self.dim_ff = dim_ff if dim_ff is not None else 4 * emb
+
+        # Sub-layer 1: Multi-head attention
+        self.multi_attention = MultiHeadSelfAttention(emb=emb, heads=heads)
+        self.dropout_1 = nn.Dropout(dropout_rate)
+        # self.layer_norm_1
+
+        # Sub-layer 2: Feed-forward network
+        self.ff = nn.Sequential(
+            nn.Linear(emb, dim_ff),
+            nn.ReLU(),
+            nn.Linear(dim_ff, emb)
+        )
+        self.dropout_2 = nn.Dropout(dropout_rate)
+        # self.layer_norm_2
+
+    def forward(self, x):
+        """Compute a forward pass through the Transformer encoder layer.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor, shape (batch, tokens, embedding).
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor, shape (batch, tokens, embedding).
+
+        """
+
+        attended = self.multi_attention(x)
+        x = self.dropout_1(attended) + x
+        # x = self.layer_norm_1(x)
+
+        ff_out = self.ff(x)
+        x = self.dropout_2(ff_out) + x
+        # x = self.layer_norm_2(x)
+
+        return x
+
+
 class Transformer(nn.Module):
     """
     TODO: You should implement the Transformer model from scratch here. You can
