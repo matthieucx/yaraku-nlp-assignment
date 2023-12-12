@@ -63,6 +63,6 @@ def test_tokenize_empty_string_error():
 def test_tokenize_warn_unks(caplog):
     string = "unknown token test"
     vocabs = {"token", "test", " "}
-    tokenize(string, vocabs)
+    tokenize(string, vocabs, verbose=True)
 
     assert "Found unknown token" in caplog.text
