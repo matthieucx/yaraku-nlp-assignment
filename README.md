@@ -16,7 +16,7 @@ This repository contains my submission for the coding assignment for the NLP Eng
 4. Initialize the virtual environment by running: `poetry shell`
 5. Run the entrypoint script with: `python main.py`
 
-This last step will: 
+This last step will:
 
 - Train a transformer model on the assignment problem and train data
 - Evaluate it on the test data
@@ -27,18 +27,18 @@ Navigate to http://localhost:8000/docs to access the Swagger UI and test the API
 ## Development tooling
 
 - pytest is used for unit testing
-- autopep8 is used for autoformating
+- autopep8 is used for autoformatting
 - flake8 is used for linting
 
 All 3 of them can be run using your IDE, which is recommended. They can also be invoked from the CLI, using `poetry run <tool>`.
 
-Autoformating is executed as a pre-commit hook, ensuring a consistent style throughout the codebase.
+Autoformatting is executed as a pre-commit hook, ensuring a consistent style throughout the codebase.
 
 ### Pre-commit
 
 To install pre-commit hooks, run `poetry run pre-commit install`.
 
-Pre-commit hooks will be run on staged files when commiting. You can run them whenever you want with `poetry run pre-commit run`.
+Pre-commit hooks will be run on staged files when committing. You can run them whenever you want with `poetry run pre-commit run`.
 
 ## Docker
 

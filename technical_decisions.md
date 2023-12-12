@@ -29,15 +29,15 @@ The `poetry.lock` file is kept in sync with the dependencies declaration in `pyp
 ## Development tooling
 
 - pytest is used for unit testing
-- autopep8 is used for autoformating
+- autopep8 is used for autoformatting
 - flake8 is used for linting
 
 All 3 of them can be run using your IDE, which is recommended.
 
-Autoformating is executed as a pre-commit, because:
+Autoformatting is executed as a pre-commit, because:
 
 - All committed code will be formatted, streamlining parsing and reviewing
-- Autoformating does not prevent commits
+- Autoformatting does not prevent commits
 
 Pre-commits should not prevent commits as this hinders workflows. Linting and testing are blocking, requiring errors to be fixed. They are better used in a CI pipeline.
 
@@ -74,7 +74,7 @@ This last point is by-design ([see the end of this StackOverflow answer](https:/
 I believe the best path is to run the autopep8 managed by Poetry as a pre-commit.
 This is discouraged by pre-commit's author ([see his reasoning](https://stackoverflow.com/questions/72888074/how-to-configure-pre-commit-config-yaml-to-work-with-poetry/72888197#72888197)). However, in the present case, contributors have their dependencies managed by Poetry.
 
-Alternatives are: 
+Alternatives are:
 
 - Use the [sync_with_poetry](https://github.com/floatingpurr/sync_with_poetry) pre-commit
 

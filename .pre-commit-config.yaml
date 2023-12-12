@@ -1,16 +1,25 @@
 default_language_version:
     python: python3.10.13
+
 repos:
--   repo: https://github.com/hhatto/autopep8
-    rev: v2.0.4
-    hooks:
-    -   id: autopep8
-        name: autopep8
-        entry: poetry run autopep8
-        language: system
-        types: [file, python]
--   repo: https://github.com/python-poetry/poetry
-    rev: '1.6.1'
-    hooks:
-    -   id: poetry-lock
-        args: [--no-update]
+    - repo: local
+      hooks:
+          - id: autopep8
+            name: autopep8
+            entry: poetry run autopep8
+            language: system
+            types: [file, python]
+    - repo: https://github.com/python-poetry/poetry
+      rev: "1.6.1"
+      hooks:
+          - id: poetry-lock
+            args: [--no-update]
+    - repo: https://github.com/pre-commit/pre-commit-hooks
+      rev: v4.5.0
+      hooks:
+          - id: end-of-file-fixer
+          - id: trailing-whitespace
+    - repo: https://github.com/crate-ci/typos
+      rev: v1.16.24
+      hooks:
+          - id: typos
