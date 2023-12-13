@@ -3,6 +3,66 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+class BasicLayerNorm(nn.Module):
+    """Layer Normalization, as defined in `Layer Normalization <https://arxiv.org/pdf/1607.06450.pdf>`_.
+
+    This implementation is simplified to only normalize the last dimension.
+    This is suitable for the Transformer model ; each token is normalized independently.
+
+    In Layer Normalization, the inputs to a layer are normalized.
+    This is done for each sample in a batch.
+    It allows for more stable training and accelerates convergence.
+
+    After normalization, a trainable gain and bias is applied to the input.
+
+    Parameters
+    ----------
+    normalized_shape : int
+        The dimensions of the elements to normalize.
+        Here, the implementation is simplified to only normalize the last dimension.
+    eps : float
+        Small value added to the variance for numerical stability.
+
+    Attributes
+    ----------
+    gain : torch.Parameter
+        Trainable gain.
+    bias : torch.Parameter
+        Trainable bias.
+    eps : float
+        Small value added to the variance for numerical stability.
+
+    """
+
+    def __init__(self, normalized_shape: int, eps=1e-5) -> None:
+        super().__init__()
+
+        self.gain = nn.Parameter(torch.ones(normalized_shape))
+        self.bias = nn.Parameter(torch.zeros(normalized_shape))
+
+        self.eps = eps
+
+    def forward(self, x):
+        """Compute the layer normalization.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor, shape (*, embedding).
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor, shape (*, embedding).
+        """
+
+        x_mean = x.mean(axis=-1, keepdims=True)
+        x_std = x.std(axis=-1, keepdims=True, unbiased=False)
+        x_normalized = (x - x_mean) / (x_std + self.eps)
+
+        return self.gain * x_normalized + self.bias
+
+
 class ScaledDotProductAttention(nn.Module):
     """Scaled Dot-Product Attention as defined in `Attention Is All You Need <https://arxiv.org/abs/1706.03762>`_.
 
