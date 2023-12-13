@@ -1,7 +1,7 @@
 import torch
 import pytest
 from nlp_engineer_assignment.transformer import MultiHeadSelfAttention, ScaledDotProductAttention, \
-    TransformerEncoderLayer, BasicLayerNorm
+    TransformerEncoderLayer, BasicLayerNorm, TransformerEmbeddings, TransformerTokenClassification
 
 
 def test_scaled_dot_product_attention_output_shape():
@@ -93,3 +93,36 @@ def test_basic_layer_norm_zeros():
 
     assert torch.allclose(
         output, x), f"Expected: {x}, but got: {output}"
+
+
+def test_transformer_embeddings_output_shape():
+    batch_size, tokens, emb, vocab_size = 8, 20, 64, 1000
+    model = TransformerEmbeddings(
+        vocab_size=vocab_size, emb=emb, n_tokens=tokens)
+
+    x = torch.randint(0, vocab_size, (batch_size, tokens))
+
+    output = model(x)
+    assert output.shape == (
+        batch_size, tokens, emb), "Output shape is incorrect"
+
+
+def test_transformer_token_classification_output_shape():
+    batch_size, tokens, emb,  = 8, 20, 64
+    heads, dim_ff, vocab_size, n_classes = 2, 256, 1000, 10
+
+    model = TransformerTokenClassification(
+        depth=2,
+        emb=emb,
+        heads=heads,
+        dim_ff=dim_ff,
+        vocab_size=vocab_size,
+        n_tokens=tokens,
+        n_classes=n_classes
+    )
+
+    x = torch.randint(0, vocab_size, (batch_size, tokens))
+
+    output = model(x)
+    assert output.shape == (
+        batch_size, tokens, n_classes), "Output shape is incorrect"

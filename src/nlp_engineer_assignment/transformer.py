@@ -193,10 +193,10 @@ class TransformerEncoderLayer(nn.Module):
     - a multi-head attention mechanism
     - a position-wise (applied to each token) fully connected feed-forward network, source of non-linearity
 
-    Between these sub-layers, residual connections help preserve the gradient flow.
-    Layer normalization stabilizes the training process. Both allow for deeper networks.
+    After each sub-layer, residual connections help preserve the gradient flow.
+    Layer normalization stabilizes and speeds up the training process. Both allow for deeper networks.
 
-    Regularization is achieved through dropout.
+    Regularization is achieved through dropout on the output of each sub-layer, before the sum with the residuals.
 
     Parameters
     ----------
@@ -222,7 +222,7 @@ class TransformerEncoderLayer(nn.Module):
         # Sub-layer 1: Multi-head attention
         self.multi_attention = MultiHeadSelfAttention(emb=emb, heads=heads)
         self.dropout_1 = nn.Dropout(dropout_rate)
-        # self.layer_norm_1
+        self.layer_norm_1 = BasicLayerNorm(normalized_shape=emb)
 
         # Sub-layer 2: Feed-forward network
         self.ff = nn.Sequential(
@@ -231,7 +231,7 @@ class TransformerEncoderLayer(nn.Module):
             nn.Linear(dim_ff, emb)
         )
         self.dropout_2 = nn.Dropout(dropout_rate)
-        # self.layer_norm_2
+        self.layer_norm_2 = BasicLayerNorm(normalized_shape=emb)
 
     def forward(self, x):
         """Compute a forward pass through the Transformer encoder layer.
@@ -250,22 +250,155 @@ class TransformerEncoderLayer(nn.Module):
 
         attended = self.multi_attention(x)
         x = self.dropout_1(attended) + x
-        # x = self.layer_norm_1(x)
+        x = self.layer_norm_1(x)
 
         ff_out = self.ff(x)
         x = self.dropout_2(ff_out) + x
-        # x = self.layer_norm_2(x)
+        x = self.layer_norm_2(x)
 
         return x
 
 
-class Transformer(nn.Module):
+class TransformerEmbeddings(nn.Module):
+    """Embeddings for a Transformer model.
+
+    This implementation assumes a fixed sequence length, and does not use padding.
+
+    This class implements the embedding layer and positional encoding.
+    Embeddings provide the model with information about the meaning of each token.
+    Positional encoding is achieved with positional embeddings, as used for `BERT <https://arxiv.org/abs/1810.04805>`_.
+    Positional embeddings provide the model with information about the relative position of tokens in the sequence.
+    This is crucial for the given task, as the model needs to understand cooccurrences of the same token.
+
+    Parameters
+    ----------
+    vocab_size : int
+        Number of unique tokens in the vocabulary.
+    emb : int
+        Embedding dimension of the input.
+    n_tokens : int
+        Number of tokens in each sequence.
+    dropout_rate : float
+        Dropout rate.
     """
-    TODO: You should implement the Transformer model from scratch here. You can
-    use elementary PyTorch layers such as: nn.Linear, nn.Embedding, nn.ReLU, nn.Softmax, etc.
-    DO NOT use pre-implemented layers for the architecture, positional encoding or self-attention,
-    such as nn.TransformerEncoderLayer, nn.TransformerEncoder, nn.MultiheadAttention, etc.
+
+    def __init__(self, vocab_size: int, emb: int, n_tokens: int, dropout_rate: float = 0.1):
+        super().__init__()
+
+        self.tok_embedding = nn.Embedding(
+            num_embeddings=vocab_size, embedding_dim=emb)
+        self.pos_embedding = nn.Embedding(
+            num_embeddings=n_tokens, embedding_dim=emb)
+        self.dropout = nn.Dropout(dropout_rate)
+
+    def forward(self, x):
+        """Compute the embeddings.
+
+        Each token is mapped to an embedding vector.
+        Each possible position is mapped to a positional embedding vector.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor, shape (batch, tokens). Each value is an index in the vocabulary.
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor, shape (batch, tokens, embedding). Embeddings for each token.
+
+        """
+
+        position_indices = torch.arange(
+            x.size(1), device=x.device).unsqueeze(0).expand_as(x)
+        tokens = self.tok_embedding(x)
+        positions = self.pos_embedding(position_indices)
+
+        return self.dropout(tokens + positions)
+
+
+class TransformerTokenClassification(nn.Module):
+    """Transformer encoder with specialized layer for token classification.
+
+    This implementation assumes a fixed sequence length, and does not use masking or padding.
+
+    The model is a Transformer encoder, as defined in `Attention Is All You Need <https://arxiv.org/abs/1706.03762>`_.
+    Positional encoding is achieved with positional embeddings, as used for `BERT <https://arxiv.org/abs/1810.04805>`_.
+    Positional embeddings provide the model with information about the relative position of tokens in the sequence.
+    This is crucial for the given task, as the model needs to understand cooccurrences of the same token.
+
+    It is specialized for token classification tasks, through the use of a linear layer.
+    Each token in the output is labeled in a single forward pass.
+
+    Parameters
+    ----------
+    depth : int
+        Number of encoder layers.
+    emb : int
+        Embedding dimension of the input.
+    heads : int
+        Number of attention heads.
+    dim_ff : int
+        Dimension of the feedforward layer (d_ff). Set to 4 * emb in the paper.
+    vocab_size : int
+        Number of unique tokens in the vocabulary.
+    n_tokens : int
+        Number of tokens in each sequence.
+    n_classes : int
+        Number of classes to predict.
+    dropout_rate : float
+        Dropout rate.
+
     """
+
+    def __init__(
+            self,
+            depth: int,
+            emb: int,
+            heads: int,
+            dim_ff: int,
+            vocab_size: int,
+            n_tokens: int,
+            n_classes: int,
+            dropout_rate: float = 0.1
+    ):
+        super().__init__()
+
+        self.emb = emb
+        self.heads = heads
+        self.dim_ff = dim_ff
+
+        self.embedding = TransformerEmbeddings(
+            vocab_size=vocab_size, emb=emb, n_tokens=n_tokens, dropout_rate=dropout_rate)
+
+        self.transformer_encoder = nn.Sequential(
+            *[TransformerEncoderLayer(emb=emb, heads=heads, dim_ff=dim_ff) for _ in range(depth)]
+        )
+
+        # Compute logits for each class, for each token
+        self.to_classes = nn.Linear(emb, n_classes)
+
+    def forward(self, x):
+        """
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor, shape (batch, tokens). Each value is an index in the vocabulary.
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor, shape (batch, tokens, n_classes). Logits for each class, per token.
+
+        """
+
+        x = self.embedding(x)
+        x = self.transformer_encoder(x)
+
+        class_logits = self.to_classes(x)
+
+        return class_logits
 
 
 def train_classifier(train_inputs):
