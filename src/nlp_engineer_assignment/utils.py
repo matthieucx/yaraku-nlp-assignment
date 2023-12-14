@@ -74,7 +74,7 @@ def score(
 
 def tokenize(
         string: str,
-        vocabs: list[str] | set[str],
+        vocabs: list[str] | set[str] | dict[str, int],
         max_token_length: int = None,
         verbose: bool = False
 ) -> list[str]:
@@ -90,10 +90,10 @@ def tokenize(
     ----------
     string : str
         Input string to tokenize.
-    vocabs : list[str] | set(str)
+    vocabs : list[str] | set[str] | dict[str, int]
         Vocabulary to use for tokenization.
         Hashed to a set for efficient lookup.
-        Should be passed as a set if tokenizing a large number of strings.
+        Should be passed as a set or dict if tokenizing a large number of strings.
     max_token_length : int, optional
         Maximum length of a token, by default None.
         Set to the length of the longest string in the vocabulary if not provided.
@@ -110,7 +110,8 @@ def tokenize(
 
     max_token_length = len(max(vocabs, key=len)
                            ) if max_token_length is None else max_token_length
-    vocabs_set = set(vocabs) if isinstance(vocabs, list) else vocabs
+    vocabs_hashed = set(vocabs) if not isinstance(
+        vocabs, (set, dict)) else vocabs
 
     tokens = []
     current_index = 0
@@ -122,7 +123,7 @@ def tokenize(
 
             substring = string[current_index:current_index + len_substring]
 
-            if substring in vocabs_set:
+            if substring in vocabs_hashed:
                 tokens.append(substring)
                 current_index += len_substring
                 break

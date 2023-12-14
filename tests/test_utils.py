@@ -66,3 +66,18 @@ def test_tokenize_warn_unks(caplog):
     tokenize(string, vocabs, verbose=True)
 
     assert "Found unknown token" in caplog.text
+
+
+def test_tokenize_handle_vocab_types():
+    string = "This is a test"
+    vocab_list = ["Th", "te", "i", "s", "a", "t", "e"]
+    vocab_set = {"Th", "te", "i", "s", "a", "t", "e"}
+    vocab_dict = {"Th": 0, "te": 1, "i": 2, "s": 3, "a": 4, "t": 5, "e": 6}
+    tokenize_list = tokenize(string, vocab_list)
+    tokenize_set = tokenize(string, vocab_set)
+    tokenize_dict = tokenize(string, vocab_dict)
+
+    assert tokenize_list == tokenize_set == tokenize_dict, \
+        f"tokenize_list: {tokenize_list}, " \
+        f"tokenize_set: {tokenize_set}, " \
+        f"tokenize_dict: {tokenize_dict}"
