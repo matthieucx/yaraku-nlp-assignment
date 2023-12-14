@@ -105,8 +105,8 @@ def tokenize(
         A list of the tokens found in the string.
 
     """
-    if not vocabs or not string:
-        raise ValueError("Vocabulary and string must be non-empty.")
+    if not vocabs:
+        raise ValueError("Vocabulary must be non-empty.")
 
     max_token_length = len(max(vocabs, key=len)
                            ) if max_token_length is None else max_token_length

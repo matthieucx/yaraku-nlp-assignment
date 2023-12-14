@@ -50,14 +50,13 @@ def test_tokenize_empty_vocab_error():
     empty_vocabs = set()
     with pytest.raises(ValueError) as excinfo:
         tokenize(string, empty_vocabs)
-    assert "Vocabulary and string must be non-empty." in str(excinfo.value)
+    assert "Vocabulary must be non-empty." in str(excinfo.value)
 
 
-def test_tokenize_empty_string_error():
+def test_tokenize_empty_string():
     vocabs = {"this", "is", "a", "test", " "}
-    with pytest.raises(ValueError) as excinfo:
-        tokenize("", vocabs)
-    assert "Vocabulary and string must be non-empty." in str(excinfo.value)
+    expected = []
+    assert tokenize("", vocabs) == expected
 
 
 def test_tokenize_warn_unks(caplog):
