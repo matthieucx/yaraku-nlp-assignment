@@ -1,7 +1,9 @@
 import torch
 import pytest
 from nlp_engineer_assignment.transformer import MultiHeadSelfAttention, ScaledDotProductAttention, \
-    TransformerEncoderLayer, BasicLayerNorm, TransformerEmbeddings, TransformerTokenClassification
+    TransformerEncoderLayer, BasicLayerNorm, TransformerEmbeddings, TransformerTokenClassification, \
+    evaluate_classifier
+from nlp_engineer_assignment.dataset import TokenClassificationDataset
 
 
 def test_scaled_dot_product_attention_output_shape():
@@ -126,3 +128,22 @@ def test_transformer_token_classification_output_shape():
     output = model(x)
     assert output.shape == (
         batch_size, tokens, n_classes), "Output shape is incorrect"
+
+
+def test_evaluate_classifier_empty_dataset():
+    clf_model = TransformerTokenClassification(
+        depth=1,
+        emb=1,
+        heads=1,
+        dim_ff=1,
+        vocab_size=1,
+        n_tokens=1,
+        n_classes=1
+    )
+    test_inputs = []
+    test_dataset = TokenClassificationDataset(test_inputs, vocabs=["a"])
+
+    pred = evaluate_classifier(model=clf_model, test_dataset=test_dataset)
+
+    assert pred.shape == torch.tensor(
+        []).shape and pred.numel() == 0, "Returned tensor should be empty"

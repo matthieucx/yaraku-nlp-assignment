@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.data import DataLoader
+from .dataset import TokenClassificationDataset
+from .utils import score
 
 
 class BasicLayerNorm(nn.Module):
@@ -399,6 +402,154 @@ class TransformerTokenClassification(nn.Module):
         class_logits = self.to_classes(x)
 
         return class_logits
+
+
+def train_epoch(model: TransformerTokenClassification,
+                dataloader: DataLoader[TokenClassificationDataset],
+                optimizer,
+                criterion,) -> float:
+    """Train the model using the training dataloader for one epoch.
+
+    Parameters
+    ----------
+    model : TransformerTokenClassification
+        Model to train.
+    dataloader : DataLoader[TokenClassificationDataset]
+        Training dataloader.
+    optimizer
+        Optimizer.
+    criterion
+        Loss function.
+
+    Returns
+    -------
+    batch_losses : list[float]
+        Training loss for each batch in the epoch.
+    batch_accuracies : list[float]
+        Training accuracy for each batch in the epoch.
+
+    """
+
+    model.train()
+    batch_losses = []
+    batch_accuracies = []
+
+    for batch in dataloader:
+
+        indices = batch["indices"]
+        targets = batch["target_seq"]
+        curr_batch_size, curr_n_tokens = indices.size()
+
+        optimizer.zero_grad()
+
+        logits = model(indices)
+        targets_loss = targets.view(curr_batch_size * curr_n_tokens)
+        logits_loss = logits.view(curr_batch_size * curr_n_tokens, -1)
+        loss = criterion(logits_loss, targets_loss)
+
+        loss.backward()
+        optimizer.step()
+
+        batch_losses.append(loss.item())
+
+        _, pred = logits.max(dim=-1)
+        batch_accuracies.append(100 * score(targets.numpy(), pred.numpy()))
+
+    return batch_losses, batch_accuracies
+
+
+def validate_epoch(model: TransformerTokenClassification,
+                   dataloader: DataLoader[TokenClassificationDataset],
+                   criterion) -> float:
+    """Validate the model using the validation dataloader for one epoch.
+
+    Parameters
+    ----------
+    model : TransformerTokenClassification
+        Model to validate.
+    dataloader : DataLoader[TokenClassificationDataset]
+        Validation dataloader.
+    criterion
+        Loss function.
+
+    Returns
+    -------
+    batch_losses : list[float]
+        Validation loss for each batch in the epoch.
+    batch_accuracies : list[float]
+        Validation accuracy for each batch in the epoch.
+
+    """
+
+    model.eval()
+    batch_losses = []
+    batch_accuracies = []
+
+    with torch.no_grad():
+        for batch in dataloader:
+
+            indices = batch["indices"]
+            targets = batch["target_seq"]
+            curr_batch_size, curr_n_tokens = indices.size()
+
+            logits = model(indices)
+            targets_loss = targets.view(curr_batch_size * curr_n_tokens)
+            logits_loss = logits.view(curr_batch_size * curr_n_tokens, -1)
+            loss = criterion(logits_loss, targets_loss)
+
+            batch_losses.append(loss.item())
+
+            _, pred = logits.max(dim=-1)
+            batch_accuracies.append(100 * score(targets.numpy(), pred.numpy()))
+
+    return batch_losses, batch_accuracies
+
+
+def evaluate_classifier(model: TransformerTokenClassification,
+                        test_dataset: TokenClassificationDataset,
+                        batch_size: int = 256) -> torch.Tensor:
+    """Returns the predictions of the model on the test set, for further evaluation.
+
+    Parameters
+    ----------
+    model : TransformerTokenClassification
+        Model to test.
+    test_dataset : TokenClassificationDataset
+        Test dataset.
+    batch_size : int, optional
+        Batch size.
+
+    Returns
+    -------
+    torch.Tensor
+        Predictions of the model on the test set, shape (num_samples, n_classes).
+
+    """
+
+    model.eval()
+
+    dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+    if len(test_dataset) == 0:
+        return torch.tensor([], dtype=torch.long)
+
+    predictions = []
+
+    with torch.no_grad():
+        for batch in dataloader:
+
+            indices = batch["indices"]
+            pred = model(indices)
+            pred = pred.argmax(dim=-1)
+            predictions.append(pred)
+
+    num_samples = len(test_dataset)
+    n_tokens = test_dataset[0]["indices"].numel()
+
+    # We have a fixed sequence length, we can concatenate the predictions and view as below
+    predictions = torch.cat(predictions)
+
+    return predictions.view(num_samples, n_tokens)
 
 
 def train_classifier(train_inputs):
