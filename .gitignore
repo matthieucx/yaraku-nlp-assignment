@@ -17,3 +17,6 @@ docs/
 # IDE preferences
 .idea/
 .vscode/
+
+# Model artifacts
+artifacts/*_state.pt

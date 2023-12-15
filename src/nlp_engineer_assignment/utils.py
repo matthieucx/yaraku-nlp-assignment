@@ -45,7 +45,7 @@ def read_inputs(path: str) -> list:
         A list of strings, one for each line in the file
     """
     lines = [line[:-1] for line in open(path, mode="r")]
-    print(f"{len(lines)} lines read")
+    logger.info(f"{len(lines)} lines read from {path}")
     print_line()
     return lines
 

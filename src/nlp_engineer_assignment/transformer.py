@@ -1,7 +1,13 @@
+import os
+import json
+from loguru import logger
+from rich.progress import Progress
+import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
+import numpy as np
 from .dataset import TokenClassificationDataset
 from .utils import score
 
@@ -552,8 +558,238 @@ def evaluate_classifier(model: TransformerTokenClassification,
     return predictions.view(num_samples, n_tokens)
 
 
-def train_classifier(train_inputs):
-    # TODO: Implement the training loop for the Transformer model.
-    raise NotImplementedError(
-        "You should implement `train_classifier` in transformer.py"
+def train_classifier(train_dataset: TokenClassificationDataset, hparams: dict = None,
+                     save: str | bool = False) -> (TransformerTokenClassification, list[float], list[float]):
+    """Train a TransformerTokenClassification model.
+
+    Parameters
+    ----------
+    train_dataset : TokenClassificationDataset
+        Training dataset.
+    hparams : dict, optional
+        Hyperparameters.
+    save : str | bool, optional
+        Whether to save the model and associated vocabulary.
+
+    Returns
+    -------
+    model: TransformerTokenClassification
+        Trained model.
+    train_losses: list[float]
+        Training loss per epoch.
+    val_losses: list[float]
+        Validation loss per epoch.
+
+    Raises
+    ------
+    ValueError
+        If the training dataset is empty.
+
+    """
+    if len(train_dataset) == 0:
+        raise ValueError("Training dataset is empty")
+
+    ###
+    # Model parameters
+    ###
+
+    # Default hyperparameters if not specified
+    if hparams is None:
+        hparams = {}
+
+    hparams['epochs'] = hparams.get('epochs', 8)
+    hparams['batch_size'] = hparams.get('batch_size', 256)
+    hparams['learning_rate'] = hparams.get('learning_rate', 5e-3)
+    hparams['depth'] = hparams.get('depth', 2)
+    hparams['emb'] = hparams.get('emb', 64)
+    hparams['heads'] = hparams.get('heads', 4)
+    hparams['dim_ff'] = hparams.get('dim_ff', 256)
+    hparams['dropout_rate'] = hparams.get('dropout_rate', 0.1)
+
+    n_tokens = train_dataset[0]["indices"].numel()
+    n_classes = train_dataset.n_classes
+
+    ###
+    # Setup
+    ###
+
+    train_size = int(0.9 * len(train_dataset))
+    test_size = len(train_dataset) - train_size
+    train, val = random_split(train_dataset, [train_size, test_size])
+
+    train_dataloader = DataLoader(
+        train, batch_size=hparams["batch_size"], shuffle=True)
+    val_dataloader = DataLoader(
+        val, batch_size=hparams["batch_size"], shuffle=True)
+
+    model = TransformerTokenClassification(
+        depth=hparams['depth'],
+        emb=hparams['emb'],
+        heads=hparams['heads'],
+        dim_ff=hparams['dim_ff'],
+        vocab_size=len(train_dataset.vocabs_mapping),
+        n_tokens=n_tokens,
+        n_classes=n_classes,
+        dropout_rate=hparams['dropout_rate']
     )
+
+    optimizer = torch.optim.Adam(
+        model.parameters(), lr=hparams['learning_rate'])
+    criterion = nn.CrossEntropyLoss()
+
+    train_losses = []
+    train_accuracies = []
+    val_losses = []
+    val_accuracies = []
+
+    # Train and validate model
+    logger.info("Starting training")
+
+    with Progress() as progress:
+        task_train = progress.add_task(
+            "[green]Training...[/]", total=hparams['epochs']
+        )
+
+        for epoch in range(hparams['epochs']):
+
+            batch_train_losses, batch_train_accuracy = train_epoch(
+                model=model,
+                dataloader=train_dataloader,
+                optimizer=optimizer,
+                criterion=criterion
+            )
+            train_losses.extend(batch_train_losses)
+            train_accuracies.extend(batch_train_accuracy)
+
+            batch_val_losses, batch_val_accuracy = validate_epoch(
+                model=model,
+                dataloader=val_dataloader,
+                criterion=criterion
+            )
+            val_losses.extend(batch_val_losses)
+            val_accuracies.extend(batch_val_accuracy)
+
+            progress.advance(task_train)
+            logger.debug(
+                "Epoch {}/{}: Train loss: {:.4f}, Train acc: {:.2f} / Val loss: {:.4f}, Val acc: {:.2f}",
+                epoch+1, hparams['epochs'],
+                sum(batch_train_losses)/len(train_dataloader),
+                sum(batch_train_accuracy)/len(train_dataloader),
+                sum(batch_val_losses)/len(val_dataloader),
+                sum(batch_val_accuracy)/len(val_dataloader)
+            )
+
+    logger.info("Finished training")
+
+    # Save model state, vocabulary mapping and parameters
+    if save:
+
+        model_name = save if isinstance(save, str) else "default_model"
+
+        model_params = {
+            "hparams": hparams,
+            "arch_params": {
+                "n_tokens": n_tokens,
+                "n_classes": n_classes
+            }
+        }
+
+        cur_dir = os.path.dirname(os.path.abspath(__file__))
+        root_dir = os.path.dirname(os.path.dirname(cur_dir))
+        artifacts_dir = os.path.join(root_dir, "artifacts")
+
+        os.makedirs(artifacts_dir, exist_ok=True)
+
+        model_state_path = os.path.join(
+            artifacts_dir, f"{model_name}_state.pt")
+        vocabs_mapping_path = os.path.join(
+            artifacts_dir, f"{model_name}_vocabs_mapping.json")
+        model_params_path = os.path.join(
+            artifacts_dir, f"{model_name}_params.json")
+        fig_path = os.path.join(
+            artifacts_dir, f"{model_name}_train_val_curves.png")
+
+        torch.save(model.state_dict(), model_state_path)
+        with open(vocabs_mapping_path, 'w') as f:
+            json.dump(train_dataset.vocabs_mapping, f, indent=4)
+        with open(model_params_path, 'w') as f:
+            json.dump(model_params, f, indent=4)
+
+        fig = plot_training_curves(train_losses=train_losses, val_losses=val_losses,
+                                   train_metric=train_accuracies, val_metric=val_accuracies,
+                                   metric_name='Accuracy', loss_name="Cross-Entropy",
+                                   epochs=hparams['epochs'])
+        fig.savefig(fig_path)
+
+        logger.info("Saved [green]{}[/] artifacts to {}",
+                    model_name, artifacts_dir)
+
+    train_metrics = {
+        "loss": train_losses,
+        "accuracy": train_accuracies
+    }
+
+    val_metrics = {
+        "loss": val_losses,
+        "accuracy": val_accuracies
+    }
+
+    return model, train_metrics, val_metrics
+
+
+def plot_training_curves(train_losses, val_losses, train_metric, val_metric, metric_name="Performance metric",
+                         loss_name="Loss function", epochs=None):
+    """Plot the training/validation loss and performance metric curves.
+
+    Parameters
+    ----------
+    train_losses : list[float]
+        Training loss for each batch in each epoch.
+    val_losses : list[float]
+        Validation loss for each batch in each epoch.
+    train_metric : list[float]
+        Training metric for each batch in each epoch.
+    val_metric : list[float]
+        Validation metric for each batch in each epoch.
+    metric_name : str, optional
+        Name of the performance metric.
+    metric_name : str
+        Name of the performance metric.
+    """
+
+    fig, (ax1, ax2) = plt.subplots(nrows=2, figsize=(10, 12))
+
+    if epochs is None:
+        epochs = 1
+        logger.warning(
+            "Epochs not specified, using 1 epoch for the training curves"
+        )
+
+    epochs_train = np.linspace(0, epochs, len(train_losses))
+    epochs_val = np.linspace(0, epochs, len(val_losses))
+
+    # Plotting training and validation loss
+    ax1.plot(epochs_train, train_losses,
+             label=f"Training {loss_name.lower()} loss")
+    ax1.plot(epochs_val, val_losses,
+             label=f"Validation {loss_name.lower()} loss", color="orange")
+
+    ax1.set_xlabel('Epochs')
+    ax1.set_ylabel(f"{loss_name} loss")
+    ax1.legend(loc='upper right')
+    ax1.set_title(
+        f"Training and validation {loss_name.lower()} loss per epoch")
+
+    # Plotting performance metric
+    ax2.plot(epochs_train, train_metric,
+             label=f"Training {metric_name.lower()}")
+    ax2.plot(epochs_val, val_metric,
+             label=f"Validation {metric_name.lower()}", color="orange")
+    ax2.set_xlabel('Epochs')
+    ax2.set_ylabel(f"{metric_name}")
+    ax2.legend(loc='lower right')
+    ax2.set_title(f"Training and validation {metric_name.lower()} per epoch")
+
+    plt.tight_layout()
+
+    return fig

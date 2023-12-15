@@ -30,6 +30,9 @@ class TokenClassificationDataset(Dataset):
         Allow efficient lookup during tokenization.
     max_token_length : int
         Maximum length of the tokens in the vocabulary.
+    n_classes : int
+        Number of classes in the classification task.
+        Depends on the function used to create gold labels.
 
     """
 
@@ -40,6 +43,7 @@ class TokenClassificationDataset(Dataset):
                 "Exactly one of vocabs or vocabs_mapping must be specified.")
 
         self.data = text_data
+        self.n_classes = 3
 
         if vocabs_mapping is not None:
             if len(vocabs_mapping) == 0:

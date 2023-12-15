@@ -2,9 +2,11 @@ import numpy as np
 import os
 import uvicorn
 from loguru import logger
+from rich.logging import RichHandler
+import torch
 
 from nlp_engineer_assignment import count_letters, print_line, read_inputs, \
-    score, train_classifier
+    score, train_classifier, TokenClassificationDataset, evaluate_classifier
 
 
 def train_model():
@@ -15,7 +17,7 @@ def train_model():
     ###
 
     # Constructs the vocabulary as described in the assignment
-    vocabs = [chr(ord('a') + i) for i in range(0, 26)] + [' ']  # noqa: F841
+    vocabs = [chr(ord('a') + i) for i in range(0, 26)] + [' ']
 
     ###
     # Train
@@ -24,8 +26,10 @@ def train_model():
     train_inputs = read_inputs(
         os.path.join(cur_dir, "data", "train.txt")
     )
+    train_dataset = TokenClassificationDataset(train_inputs, vocabs)
 
-    model = train_classifier(train_inputs)  # noqa: F841
+    model, _, _ = train_classifier(
+        train_dataset, save="default_model", hparams={"epochs": 2})
 
     ###
     # Test
@@ -34,27 +38,40 @@ def train_model():
     test_inputs = read_inputs(
         os.path.join(cur_dir, "data", "test.txt")
     )
+    test_dataset = TokenClassificationDataset(
+        test_inputs, vocabs_mapping=train_dataset.vocabs_mapping
+    )
 
-    # TODO: Extract predictions from the model and save it to a
-    # variable called `predictions`. Observe the shape of the
-    # example random predictions.
+    pred = evaluate_classifier(model=model, test_dataset=test_dataset)
+    pred_np = pred.numpy()
     golds = np.stack([count_letters(text) for text in test_inputs])
-    predictions = np.random.randint(0, 3, size=golds.shape)
 
-    # Print the first five inputs, golds, and predictions for analysis
-    for i in range(5):
-        print(f"Input {i+1}: {test_inputs[i]}")
-        print(
-            f"Gold {i+1}: {count_letters(test_inputs[i]).tolist()}"
-        )
-        print(f"Pred {i+1}: {predictions[i].tolist()}")
-        print_line()
+    # Log the first five inputs, golds, and predictions for analysis
+    sample_idx = np.random.randint(0, len(test_inputs))
+    logger.info("Sample input: {}", sample_idx)
+    sample = test_dataset[sample_idx]
+    logger.info("Input: {}", sample["text"])
+    logger.info("Gold: {}", sample["target_seq"].tolist())
+    logger.info("Pred: {}", pred_np[sample_idx].tolist())
+    print_line()
 
-    print(f"Test Accuracy: {100.0 * score(golds, predictions):.2f}%")
+    logger.info("Test Accuracy: {:.2f}%", 100.0 * score(golds, pred_np))
     print_line()
 
 
 if __name__ == "__main__":
+
+    SEED = 777
+    np.random.seed(SEED)
+    torch.manual_seed(SEED)
+
+    # Format is handled by rich
+    # Allows compatibility with progress bars
+    logger.configure(
+        handlers=[{"sink": RichHandler(markup=True),
+                   "format": "{message}",
+                   "level": "DEBUG"}],
+    )
     with logger.catch():
         train_model()
         uvicorn.run(
