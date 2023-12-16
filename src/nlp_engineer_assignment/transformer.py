@@ -813,15 +813,16 @@ def objective(trial, train_dataset: TokenClassificationDataset):
     """
 
     # Set ranges of hyperparameters to sample from
-    batch_size = trial.suggest_categorical('batch_size', [16, 32, 64, 128])
-    learning_rate = trial.suggest_float('lr', 1e-5, 1e-3, log=True)
+    batch_size = trial.suggest_categorical(
+        'batch_size', [16, 32, 64, 128, 256, 512])
+    learning_rate = trial.suggest_float('lr', 1e-5, 1e-2, log=True)
     depth = trial.suggest_int('num_layers', 1, 2)
-    emb = trial.suggest_categorical('emb_size', [32, 64, 128])
-    heads = trial.suggest_categorical('heads', [2, 4])
+    emb = trial.suggest_categorical('emb_size', [32, 64, 96, 128])
+    heads = trial.suggest_categorical('heads', [1, 2, 4])
     dim_ff = trial.suggest_categorical('dim_ff', [128, 256, 512])
-    dropout_rate = trial.suggest_float('dropout_rate', 0.001, 0.5, log=True)
+    dropout_rate = trial.suggest_float('dropout_rate', 0.001, 0.3, log=True)
 
-    epochs = 1
+    epochs = 5
 
     hparams = {
         'epochs': epochs,

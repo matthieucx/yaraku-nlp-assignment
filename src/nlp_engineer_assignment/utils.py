@@ -3,6 +3,8 @@ from loguru import logger
 import os
 import torch
 import json
+import matplotlib.pyplot as plt
+from typing import Any
 
 
 def count_letters(text: str) -> np.array:
@@ -176,12 +178,40 @@ def check_model_files(artifacts_dir, model_name):
     return files_exist
 
 
-def save_model(model_name: str,
-               model: torch.nn.Module,
-               model_params: dict,
-               vocabulary_mapping: dict,
-               artifacts_dir: str):
+def _save_to_file(path: str, data: plt.Figure | Any):
+    """Save data to disk.
+
+    Parameters:
+    ----------
+    path: str
+        The path to the file.
+    data: plt.Figure | any
+        The data to save. Can be a matplotlib figure or any serializable object.
+
+    """
+
+    if isinstance(data, dict):
+        if not path.endswith(".json"):
+            path += ".json"
+        with open(path, 'w') as f:
+            json.dump(data, f, indent=4)
+
+    elif isinstance(data, plt.Figure):
+        data.savefig(path)
+
+    else:
+        raise ValueError("Unsupported data type")
+
+
+def save_artifacts(model_name: str,
+                   model: torch.nn.Module,
+                   model_params: dict,
+                   vocabulary_mapping: dict,
+                   artifacts_dir: str,
+                   additional_artifacts: dict = None):
     """Save the model, model parameters, and vocabulary mapping to disk.
+
+    Will save training curves and other artifacts if provided.
 
     Parameters:
     ----------
@@ -214,12 +244,13 @@ def save_model(model_name: str,
     )
 
     torch.save(model.state_dict(), model_state_path)
+    _save_to_file(vocabs_mapping_path, vocabulary_mapping)
+    _save_to_file(model_params_path, model_params)
 
-    with open(vocabs_mapping_path, 'w') as f:
-        json.dump(vocabulary_mapping, f, indent=4)
-
-    with open(model_params_path, 'w') as f:
-        json.dump(model_params, f, indent=4)
+    if additional_artifacts is not None:
+        for name, data in additional_artifacts.items():
+            path = os.path.join(artifacts_dir, f"{model_name}_{name}")
+            _save_to_file(path, data)
 
 
 def load_model(model_name: str, artifacts_dir: str, model_class: torch.nn.Module):
@@ -245,6 +276,13 @@ def load_model(model_name: str, artifacts_dir: str, model_class: torch.nn.Module
 
     """
 
+    model_found = check_model_files(
+        artifacts_dir=artifacts_dir,
+        model_name=model_name,
+    )
+    if not model_found:
+        raise FileNotFoundError(f"Files not found for model {model_name}")
+
     model_state_path = os.path.join(
         artifacts_dir,
         f"{model_name}_state.pt"
@@ -268,3 +306,33 @@ def load_model(model_name: str, artifacts_dir: str, model_class: torch.nn.Module
     model.load_state_dict(torch.load(model_state_path))
 
     return model, vocabs_mapping, model_params
+
+
+def load_hparams(artifacts_dir, hparams_name):
+    """Load the hyperparameters from disk.
+
+    Parameters:
+    ----------
+    artifacts_dir: str
+        The directory where the hyperparameters file is stored.
+    hparams_name: str
+        The name of the hyperparameters file.
+
+    Returns:
+    -------
+    dict
+        The hyperparameters, or None if the file was not found.
+
+    """
+
+    hparams_path = os.path.join(artifacts_dir, hparams_name)
+    if os.path.exists(hparams_path):
+
+        with open(hparams_path, 'r') as f:
+            hparams = json.load(f)
+
+        logger.info(f"Found {hparams_name} in {artifacts_dir}")
+        return hparams
+
+    logger.info(f"Did not find {hparams_name} in {artifacts_dir}")
+    return None

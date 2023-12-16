@@ -1,0 +1,9 @@
+{
+    "batch_size": 32,
+    "lr": 0.0020281547836580407,
+    "num_layers": 2,
+    "emb_size": 64,
+    "heads": 2,
+    "dim_ff": 128,
+    "dropout_rate": 0.0010092342575115426
+}

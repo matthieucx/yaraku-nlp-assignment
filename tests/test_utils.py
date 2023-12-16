@@ -4,7 +4,8 @@ import os
 import numpy as np
 import pytest
 
-from nlp_engineer_assignment.utils import count_letters, score, tokenize, save_model, check_model_files, load_model
+from nlp_engineer_assignment.utils import count_letters, score, tokenize, save_artifacts, check_model_files, \
+    load_model, load_hparams
 
 
 def test_count_letters():
@@ -102,7 +103,7 @@ def test_check_model_files_missing(tmp_path):
     assert check_model_files(str(tmp_path), model_name) is False
 
 
-def test_save_model(tmp_path):
+def test_save_artifacts(tmp_path):
 
     model_name = "test_model"
     mock_model = Mock()
@@ -110,7 +111,7 @@ def test_save_model(tmp_path):
     model_params = {"param1": "value1"}
     vocab_mapping = {"vocab1": "mapping1"}
 
-    save_model(
+    save_artifacts(
         model_name=model_name,
         model=mock_model,
         model_params=model_params,
@@ -132,7 +133,7 @@ def test_save_model(tmp_path):
     assert content == model_params
 
 
-def test_load_model(tmp_path):
+def test_load_model_success(tmp_path):
     model_name = "test_model"
     artifacts_dir = str(tmp_path)
 
@@ -146,13 +147,13 @@ def test_load_model(tmp_path):
     with open(tmp_path / f"{model_name}_params.json", 'w') as f:
         json.dump(dummy_model_params, f)
 
-    # Mock the model class
     mock_model_class = Mock()
     mock_model_instance = Mock()
     mock_model_class.return_value = mock_model_instance
+    # Mock external functions
+    with patch("nlp_engineer_assignment.utils.check_model_files", return_value=True), \
+            patch("torch.load", return_value=mock_state_dict):
 
-    # Mock torch.load to ensure the state dict is returned
-    with patch('torch.load', return_value=mock_state_dict):
         model, vocabs_mapping, model_params = load_model(
             model_name=model_name,
             artifacts_dir=artifacts_dir,
@@ -162,3 +163,24 @@ def test_load_model(tmp_path):
     assert model == mock_model_instance
     assert vocabs_mapping == dummy_vocabs_mapping
     assert model_params == dummy_model_params
+
+
+def test_initialize_hyperparameters_exists(tmp_path):
+
+    hparams_name = "dummy_file.json"
+    hparams_path = tmp_path / hparams_name
+    hparams_data = {"param1": 10, "param2": 20}
+    with open(hparams_path, 'w') as f:
+        json.dump(hparams_data, f)
+
+    hparams = load_hparams(str(tmp_path), hparams_name)
+
+    assert hparams == hparams_data
+
+
+def test_initialize_hyperparameters_not_exists(tmp_path):
+
+    hparams_name = "dummy_file.json"
+    hparams = load_hparams(str(tmp_path), hparams_name)
+
+    assert hparams is None

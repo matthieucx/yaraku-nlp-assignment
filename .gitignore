@@ -19,7 +19,5 @@ docs/
 .vscode/
 
 # Model artifacts
-artifacts/*_state.pt
-artifacts/*_params.json
-artifacts/*_vocabs_mapping.json
-artifacts/*_curves.png
+artifacts/*
+!artifacts/optimal_hparams.json
