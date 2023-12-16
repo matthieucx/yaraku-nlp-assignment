@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import Dataset
 
-from .utils import tokenize, count_letters
+from .utils import count_letters, tokenize
 
 
 class TokenClassificationDataset(Dataset):

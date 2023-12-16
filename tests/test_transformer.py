@@ -1,9 +1,17 @@
-import torch
 import pytest
-from nlp_engineer_assignment.transformer import MultiHeadSelfAttention, ScaledDotProductAttention, \
-    TransformerEncoderLayer, BasicLayerNorm, TransformerEmbeddings, TransformerTokenClassification, \
-    train_classifier, evaluate_classifier
+import torch
+
 from nlp_engineer_assignment.dataset import TokenClassificationDataset
+from nlp_engineer_assignment.transformer import (
+    BasicLayerNorm,
+    MultiHeadSelfAttention,
+    ScaledDotProductAttention,
+    TransformerEmbeddings,
+    TransformerEncoderLayer,
+    TransformerTokenClassification,
+    evaluate_classifier,
+    train_classifier
+)
 
 
 def test_scaled_dot_product_attention_output_shape():
@@ -110,7 +118,7 @@ def test_transformer_embeddings_output_shape():
 
 
 def test_transformer_token_classification_output_shape():
-    batch_size, tokens, emb,  = 8, 20, 64
+    batch_size, tokens, emb, = 8, 20, 64
     heads, dim_ff, vocab_size, n_classes = 2, 256, 1000, 10
 
     model = TransformerTokenClassification(

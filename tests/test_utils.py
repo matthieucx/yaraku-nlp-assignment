@@ -1,11 +1,19 @@
-from unittest.mock import Mock, patch
 import json
 import os
+from unittest.mock import Mock, patch
+
 import numpy as np
 import pytest
 
-from nlp_engineer_assignment.utils import count_letters, score, tokenize, save_artifacts, check_model_files, \
-    load_model, load_hparams
+from nlp_engineer_assignment.utils import (
+    check_model_files,
+    count_letters,
+    load_hparams,
+    load_model,
+    save_artifacts,
+    score,
+    tokenize
+)
 
 
 def test_count_letters():
@@ -37,7 +45,7 @@ def test_tokenize_regular_input():
 
 def test_tokenize_unk_at_first_position():
     string = "unknown this is a test"
-    vocabs = {"this", "is", "a", "test",  " "}
+    vocabs = {"this", "is", "a", "test", " "}
     expected = ["<UNK>", " ", "this", " ", "is", " ", "a", " ", "test"]
     assert tokenize(string, vocabs) == expected
 

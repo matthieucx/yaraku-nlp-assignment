@@ -1,8 +1,16 @@
-from .transformer import train_classifier, evaluate_classifier, optimize_classifier, TransformerTokenClassification
-from .utils import count_letters, print_line, read_inputs, score, tokenize, \
-    check_model_files, load_model, save_artifacts, load_hparams
 from .dataset import TokenClassificationDataset
-
+from .transformer import TransformerTokenClassification, evaluate_classifier, optimize_classifier, train_classifier
+from .utils import (
+    check_model_files,
+    count_letters,
+    load_hparams,
+    load_model,
+    print_line,
+    read_inputs,
+    save_artifacts,
+    score,
+    tokenize
+)
 
 __all__ = [
     "count_letters",

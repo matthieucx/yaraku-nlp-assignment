@@ -1,10 +1,11 @@
-import numpy as np
-from loguru import logger
-import os
-import torch
 import json
-import matplotlib.pyplot as plt
+import os
 from typing import Any
+
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from loguru import logger
 
 
 def count_letters(text: str) -> np.array:

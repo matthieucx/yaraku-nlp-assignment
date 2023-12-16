@@ -1,14 +1,25 @@
-import numpy as np
+import json
 import os
+
+import numpy as np
+import torch
 import uvicorn
 from loguru import logger
 from rich.logging import RichHandler
-import torch
-import json
 
-from nlp_engineer_assignment import print_line, read_inputs, \
-    score, train_classifier, TokenClassificationDataset, evaluate_classifier, optimize_classifier, \
-    load_model, TransformerTokenClassification, save_artifacts, load_hparams
+from nlp_engineer_assignment import (
+    TokenClassificationDataset,
+    TransformerTokenClassification,
+    evaluate_classifier,
+    load_hparams,
+    load_model,
+    optimize_classifier,
+    print_line,
+    read_inputs,
+    save_artifacts,
+    score,
+    train_classifier
+)
 
 
 def main(seed: int = 777):

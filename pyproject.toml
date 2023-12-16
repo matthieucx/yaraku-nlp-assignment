@@ -19,11 +19,17 @@ rich = "~13.7"
 autopep8 = "~2.0"
 flake8 = "~6.1"
 pytest = "~7.4"
-pre-commit = "~3.5.0"
+pre-commit = "~3.5"
+isort = "~5.13"
 
 [tool.autopep8]
 max_line_length = 120
 in-place = true
+aggressive = 2
+
+[tool.isort]
+line_length = 120
+multi_line_output = 3
 
 [tool.typos.files]
 extend-exclude = ["data/*"]

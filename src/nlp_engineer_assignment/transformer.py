@@ -1,15 +1,17 @@
-from loguru import logger
-from rich.progress import Progress
+from itertools import chain
+
 import matplotlib.pyplot as plt
+import numpy as np
 import optuna
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from loguru import logger
+from rich.progress import Progress
 from torch.utils.data import DataLoader, random_split
-import numpy as np
+
 from .dataset import TokenClassificationDataset
 from .utils import score
-from itertools import chain
 
 
 class BasicLayerNorm(nn.Module):
@@ -111,7 +113,7 @@ class ScaledDotProductAttention(nn.Module):
 
         dot = torch.bmm(queries, keys.transpose(1, 2))
         # Scale dot product
-        dot = dot / (self.d_k ** (1/2))
+        dot = dot / (self.d_k ** (1 / 2))
         # Normalize
         attention_weights = F.softmax(dot, dim=2)
 
@@ -673,11 +675,11 @@ def train_classifier(
             progress.advance(task_train)
             logger.debug(
                 "Epoch {}/{}: Train loss: {:.4f}, Train acc: {:.2f} / Val loss: {:.4f}, Val acc: {:.2f}",
-                epoch+1, hparams['epochs'],
-                sum(batch_train_losses)/len(train_dataloader),
-                sum(batch_train_accuracy)/len(train_dataloader),
-                sum(batch_val_losses)/len(val_dataloader),
-                sum(batch_val_accuracy)/len(val_dataloader)
+                epoch + 1, hparams['epochs'],
+                sum(batch_train_losses) / len(train_dataloader),
+                sum(batch_train_accuracy) / len(train_dataloader),
+                sum(batch_val_losses) / len(val_dataloader),
+                sum(batch_val_accuracy) / len(val_dataloader)
             )
 
     logger.info("Finished training")

@@ -1,7 +1,9 @@
-import pytest
 from unittest import mock
-from nlp_engineer_assignment import TokenClassificationDataset, count_letters, tokenize
+
 import numpy as np
+import pytest
+
+from nlp_engineer_assignment import TokenClassificationDataset, count_letters, tokenize
 
 
 @pytest.fixture(autouse=True, scope="function")

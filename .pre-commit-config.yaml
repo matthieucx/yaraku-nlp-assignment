@@ -1,5 +1,6 @@
 default_language_version:
     python: python3.10.13
+exclude: ^data/
 
 repos:
     - repo: local
@@ -7,6 +8,11 @@ repos:
           - id: autopep8
             name: autopep8
             entry: poetry run autopep8
+            language: system
+            types: [file, python]
+          - id: isort
+            name: isort
+            entry: poetry run isort
             language: system
             types: [file, python]
     - repo: https://github.com/python-poetry/poetry
