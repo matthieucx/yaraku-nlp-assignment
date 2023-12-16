@@ -1,5 +1,8 @@
 import numpy as np
 from loguru import logger
+import os
+import torch
+import json
 
 
 def count_letters(text: str) -> np.array:
@@ -140,3 +143,128 @@ def tokenize(
             current_index += 1
 
     return tokens
+
+
+def check_model_files(artifacts_dir, model_name):
+    """
+    Check if the three necessary model files exist.
+
+    Parameters:
+    ----------
+    model_name: str
+        The name of the model.
+    artifacts_dir: str
+        The directory where the model files are stored.
+
+    Returns:
+    -------
+    bool
+        True if all three files exist, False otherwise.
+
+    """
+    expected_files = [
+        f"{model_name}_state.pt",
+        f"{model_name}_vocabs_mapping.json",
+        f"{model_name}_params.json"
+    ]
+
+    files_exist = all(
+        os.path.exists(os.path.join(artifacts_dir, f))
+        for f in expected_files
+    )
+
+    return files_exist
+
+
+def save_model(model_name: str,
+               model: torch.nn.Module,
+               model_params: dict,
+               vocabulary_mapping: dict,
+               artifacts_dir: str):
+    """Save the model, model parameters, and vocabulary mapping to disk.
+
+    Parameters:
+    ----------
+    model_name: str
+        Name of the model, used as a prefix for the files.
+    model: torch.nn.Module
+        The actual model.
+    model_params: dict
+        The parameters used to initialize the model.
+    vocabulary_mapping: dict
+        The vocabulary mapping used to tokenize the training data.
+    artifacts_dir: str
+        The directory where the model files will be saved.
+
+    """
+
+    os.makedirs(artifacts_dir, exist_ok=True)
+
+    model_state_path = os.path.join(
+        artifacts_dir,
+        f"{model_name}_state.pt"
+    )
+    vocabs_mapping_path = os.path.join(
+        artifacts_dir,
+        f"{model_name}_vocabs_mapping.json"
+    )
+    model_params_path = os.path.join(
+        artifacts_dir,
+        f"{model_name}_params.json"
+    )
+
+    torch.save(model.state_dict(), model_state_path)
+
+    with open(vocabs_mapping_path, 'w') as f:
+        json.dump(vocabulary_mapping, f, indent=4)
+
+    with open(model_params_path, 'w') as f:
+        json.dump(model_params, f, indent=4)
+
+
+def load_model(model_name: str, artifacts_dir: str, model_class: torch.nn.Module):
+    """Load the model, model parameters, and vocabulary mapping from disk.
+
+    Parameters:
+    ----------
+    model_name: str
+        Name of the model, used as a prefix for the files.
+    artifacts_dir: str
+        The directory where the model files are stored.
+    model_class: torch.nn.Module
+        The class of the model.
+
+    Returns:
+    -------
+    model: torch.nn.Module
+        The actual model.
+    vocabs_mapping: dict
+        The vocabulary mapping used to tokenize the training data.
+    model_params: dict
+        The parameters used to initialize the model.
+
+    """
+
+    model_state_path = os.path.join(
+        artifacts_dir,
+        f"{model_name}_state.pt"
+    )
+    vocabs_mapping_path = os.path.join(
+        artifacts_dir,
+        f"{model_name}_vocabs_mapping.json"
+    )
+    model_params_path = os.path.join(
+        artifacts_dir,
+        f"{model_name}_params.json"
+    )
+
+    with open(vocabs_mapping_path, 'r') as f:
+        vocabs_mapping = json.load(f)
+
+    with open(model_params_path, 'r') as f:
+        model_params = json.load(f)
+
+    model = model_class(**model_params["model"])
+    model.load_state_dict(torch.load(model_state_path))
+
+    return model, vocabs_mapping, model_params

@@ -28,8 +28,8 @@ def train_model():
     )
     train_dataset = TokenClassificationDataset(train_inputs, vocabs)
 
-    model, _, _ = train_classifier(
-        train_dataset, save="default_model", hparams={"epochs": 2})
+    model, _ = train_classifier(
+        train_dataset, hparams={"epochs": 2})
 
     ###
     # Test

@@ -1,6 +1,6 @@
 from .transformer import train_classifier, evaluate_classifier, optimize_classifier, TransformerTokenClassification
-from .transformer import train_classifier, evaluate_classifier
-from .utils import count_letters, print_line, read_inputs, score, tokenize
+from .utils import count_letters, print_line, read_inputs, score, tokenize, \
+    check_model_files, load_model, save_model
 from .dataset import TokenClassificationDataset
 
 
@@ -14,5 +14,8 @@ __all__ = [
     "evaluate_classifier",
     "optimize_classifier",
     "TokenClassificationDataset",
+    "check_model_files",
+    "load_model",
+    "save_model",
     "TransformerTokenClassification"
 ]

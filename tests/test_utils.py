@@ -1,7 +1,10 @@
+from unittest.mock import Mock, patch
+import json
+import os
 import numpy as np
 import pytest
 
-from nlp_engineer_assignment.utils import count_letters, score, tokenize
+from nlp_engineer_assignment.utils import count_letters, score, tokenize, save_model, check_model_files, load_model
 
 
 def test_count_letters():
@@ -80,3 +83,82 @@ def test_tokenize_handle_vocab_types():
         f"tokenize_list: {tokenize_list}, " \
         f"tokenize_set: {tokenize_set}, " \
         f"tokenize_dict: {tokenize_dict}"
+
+
+def test_check_model_files_exists(tmp_path):
+    model_name = "test_model"
+    # Create the three files
+    for file_name in [f"{model_name}_state.pt", f"{model_name}_vocabs_mapping.json", f"{model_name}_params.json"]:
+        (tmp_path / file_name).touch()
+
+    assert check_model_files(str(tmp_path), model_name) is True
+
+
+def test_check_model_files_missing(tmp_path):
+    model_name = "test_model"
+    # Some files missing
+    (tmp_path / f"{model_name}_state.pt").touch()
+
+    assert check_model_files(str(tmp_path), model_name) is False
+
+
+def test_save_model(tmp_path):
+
+    model_name = "test_model"
+    mock_model = Mock()
+    mock_model.state_dict.return_value = {"dummy": "state"}
+    model_params = {"param1": "value1"}
+    vocab_mapping = {"vocab1": "mapping1"}
+
+    save_model(
+        model_name=model_name,
+        model=mock_model,
+        model_params=model_params,
+        vocabulary_mapping=vocab_mapping,
+        artifacts_dir=str(tmp_path))
+
+    # Ensure the files are created
+    assert os.path.exists(tmp_path / f"{model_name}_state.pt")
+    assert os.path.exists(tmp_path / f"{model_name}_vocabs_mapping.json")
+    assert os.path.exists(tmp_path / f"{model_name}_params.json")
+
+    # Ensure the files contain the correct content
+    with open(tmp_path / f"{model_name}_vocabs_mapping.json", "r") as f:
+        content = json.load(f)
+    assert content == vocab_mapping
+
+    with open(tmp_path / f"{model_name}_params.json", "r") as f:
+        content = json.load(f)
+    assert content == model_params
+
+
+def test_load_model(tmp_path):
+    model_name = "test_model"
+    artifacts_dir = str(tmp_path)
+
+    mock_state_dict = {"weights": [1, 2, 3]}
+    dummy_vocabs_mapping = {"a": 1}
+    dummy_model_params = {"model": {"param1": "value1"}}
+
+    # Create mock files
+    with open(tmp_path / f"{model_name}_vocabs_mapping.json", 'w') as f:
+        json.dump(dummy_vocabs_mapping, f)
+    with open(tmp_path / f"{model_name}_params.json", 'w') as f:
+        json.dump(dummy_model_params, f)
+
+    # Mock the model class
+    mock_model_class = Mock()
+    mock_model_instance = Mock()
+    mock_model_class.return_value = mock_model_instance
+
+    # Mock torch.load to ensure the state dict is returned
+    with patch('torch.load', return_value=mock_state_dict):
+        model, vocabs_mapping, model_params = load_model(
+            model_name=model_name,
+            artifacts_dir=artifacts_dir,
+            model_class=mock_model_class
+        )
+
+    assert model == mock_model_instance
+    assert vocabs_mapping == dummy_vocabs_mapping
+    assert model_params == dummy_model_params

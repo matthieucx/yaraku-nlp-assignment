@@ -1,5 +1,3 @@
-import os
-import json
 from loguru import logger
 from rich.progress import Progress
 import matplotlib.pyplot as plt
@@ -11,6 +9,7 @@ from torch.utils.data import DataLoader, random_split
 import numpy as np
 from .dataset import TokenClassificationDataset
 from .utils import score
+from itertools import chain
 
 
 class BasicLayerNorm(nn.Module):
@@ -559,8 +558,10 @@ def evaluate_classifier(model: TransformerTokenClassification,
     return predictions.view(num_samples, n_tokens)
 
 
-def train_classifier(train_dataset: TokenClassificationDataset, hparams: dict = None,
-                     save: str | bool = False) -> (TransformerTokenClassification, list[float], list[float]):
+def train_classifier(
+    train_dataset: TokenClassificationDataset,
+    hparams: dict = None,
+) -> (TransformerTokenClassification, dict[str, any]):
     """Train a TransformerTokenClassification model.
 
     Parameters
@@ -568,18 +569,15 @@ def train_classifier(train_dataset: TokenClassificationDataset, hparams: dict = 
     train_dataset : TokenClassificationDataset
         Training dataset.
     hparams : dict, optional
-        Hyperparameters.
-    save : str | bool, optional
-        Whether to save the model and associated vocabulary.
+        Hyperparameters for the model and training process.
 
     Returns
     -------
     model: TransformerTokenClassification
         Trained model.
-    train_losses: list[float]
-        Training loss per epoch.
-    val_losses: list[float]
-        Validation loss per epoch.
+    artifacts : dict
+        Dictionary of artifacts from the model training process.
+        Includes: model parameters, vocabulary mapping, training curves, training metrics, validation metrics.
 
     Raises
     ------
@@ -623,12 +621,14 @@ def train_classifier(train_dataset: TokenClassificationDataset, hparams: dict = 
     val_dataloader = DataLoader(
         val, batch_size=hparams["batch_size"], shuffle=True)
 
+    vocab_size = len(train_dataset.vocabs_mapping)
+
     model = TransformerTokenClassification(
         depth=hparams['depth'],
         emb=hparams['emb'],
         heads=hparams['heads'],
         dim_ff=hparams['dim_ff'],
-        vocab_size=len(train_dataset.vocabs_mapping),
+        vocab_size=vocab_size,
         n_tokens=n_tokens,
         n_classes=n_classes,
         dropout_rate=hparams['dropout_rate']
@@ -659,16 +659,16 @@ def train_classifier(train_dataset: TokenClassificationDataset, hparams: dict = 
                 optimizer=optimizer,
                 criterion=criterion
             )
-            train_losses.extend(batch_train_losses)
-            train_accuracies.extend(batch_train_accuracy)
+            train_losses.append(batch_train_losses)
+            train_accuracies.append(batch_train_accuracy)
 
             batch_val_losses, batch_val_accuracy = validate_epoch(
                 model=model,
                 dataloader=val_dataloader,
                 criterion=criterion
             )
-            val_losses.extend(batch_val_losses)
-            val_accuracies.extend(batch_val_accuracy)
+            val_losses.append(batch_val_losses)
+            val_accuracies.append(batch_val_accuracy)
 
             progress.advance(task_train)
             logger.debug(
@@ -682,48 +682,33 @@ def train_classifier(train_dataset: TokenClassificationDataset, hparams: dict = 
 
     logger.info("Finished training")
 
-    # Save model state, vocabulary mapping and parameters
-    if save:
-
-        model_name = save if isinstance(save, str) else "default_model"
-
-        model_params = {
-            "hparams": hparams,
-            "arch_params": {
-                "n_tokens": n_tokens,
-                "n_classes": n_classes
-            }
+    model_params = {
+        "training": {
+            "epochs": hparams['epochs'],
+            "batch_size": hparams['batch_size'],
+            "learning_rate": hparams['learning_rate']
+        },
+        "model": {
+            "depth": hparams['depth'],
+            "emb": hparams['emb'],
+            "heads": hparams['heads'],
+            "dim_ff": hparams['dim_ff'],
+            "dropout_rate": hparams['dropout_rate'],
+            "n_classes": n_classes,
+            "n_tokens": n_tokens,
+            "vocab_size": vocab_size,
         }
+    }
 
-        cur_dir = os.path.dirname(os.path.abspath(__file__))
-        root_dir = os.path.dirname(os.path.dirname(cur_dir))
-        artifacts_dir = os.path.join(root_dir, "artifacts")
-
-        os.makedirs(artifacts_dir, exist_ok=True)
-
-        model_state_path = os.path.join(
-            artifacts_dir, f"{model_name}_state.pt")
-        vocabs_mapping_path = os.path.join(
-            artifacts_dir, f"{model_name}_vocabs_mapping.json")
-        model_params_path = os.path.join(
-            artifacts_dir, f"{model_name}_params.json")
-        fig_path = os.path.join(
-            artifacts_dir, f"{model_name}_train_val_curves.png")
-
-        torch.save(model.state_dict(), model_state_path)
-        with open(vocabs_mapping_path, 'w') as f:
-            json.dump(train_dataset.vocabs_mapping, f, indent=4)
-        with open(model_params_path, 'w') as f:
-            json.dump(model_params, f, indent=4)
-
-        fig = plot_training_curves(train_losses=train_losses, val_losses=val_losses,
-                                   train_metric=train_accuracies, val_metric=val_accuracies,
-                                   metric_name='Accuracy', loss_name="Cross-Entropy",
-                                   epochs=hparams['epochs'])
-        fig.savefig(fig_path)
-
-        logger.info("Saved [green]{}[/] artifacts to {}",
-                    model_name, artifacts_dir)
+    # Flatten lists of lists
+    fig = plot_training_curves(
+        train_losses=list(chain.from_iterable(train_losses)),
+        val_losses=list(chain.from_iterable(val_losses)),
+        train_metric=list(chain.from_iterable(train_accuracies)),
+        val_metric=list(chain.from_iterable(val_accuracies)),
+        metric_name="Accuracy", loss_name="Cross-Entropy",
+        epochs=len(train_losses)
+    )
 
     train_metrics = {
         "loss": train_losses,
@@ -735,7 +720,15 @@ def train_classifier(train_dataset: TokenClassificationDataset, hparams: dict = 
         "accuracy": val_accuracies
     }
 
-    return model, train_metrics, val_metrics
+    artifacts = {
+        "model_params": model_params,
+        "vocabs_mapping": train_dataset.vocabs_mapping,
+        "training_curves": fig,
+        "train_metrics": train_metrics,
+        "val_metrics": val_metrics
+    }
+
+    return model, artifacts
 
 
 def plot_training_curves(train_losses, val_losses, train_metric, val_metric, metric_name="Performance metric",
@@ -841,17 +834,14 @@ def objective(trial, train_dataset: TokenClassificationDataset):
         'dropout_rate': dropout_rate
     }
 
-    _, _, val_metrics = train_classifier(
+    _, artifacts = train_classifier(
         train_dataset=train_dataset,
         hparams=hparams
     )
 
-    val_losses = val_metrics["loss"]
+    last_epoch_losses = artifacts["val_metrics"]["loss"][-1]
 
-    batches_per_epoch = len(val_losses) // epochs
-    val_losses_last_epoch = val_losses[-batches_per_epoch:]
-
-    return sum(val_losses_last_epoch) / len(val_losses_last_epoch)
+    return sum(last_epoch_losses) / len(last_epoch_losses)
 
 
 def optimize_classifier(
