@@ -51,15 +51,15 @@ def main(seed: int = 777):
 
     os.makedirs(artifacts_dir, exist_ok=True)
 
-    model_name = "optimal_model"
+    model_key = "optimal_model"
 
     try:
         model, vocabs_mapping, _ = load_model(
             artifacts_dir=artifacts_dir,
-            model_name=model_name,
+            model_key=model_key,
             model_class=TransformerTokenClassification
         )
-        logger.info("Found {} in {}", model_name, artifacts_dir)
+        logger.info("Found {} in {}", model_key, artifacts_dir)
 
         return model, vocabs_mapping
 
@@ -76,7 +76,7 @@ def main(seed: int = 777):
     train_model(
         data_dir=data_dir,
         artifacts_dir=artifacts_dir,
-        model_name=model_name,
+        model_key=model_key,
         hparams=hparams,
         seed=seed
     )
@@ -84,14 +84,14 @@ def main(seed: int = 777):
     evaluate_model(
         data_dir=data_dir,
         artifacts_dir=artifacts_dir,
-        model_name=model_name
+        model_key=model_key
     )
 
 
 def train_model(
         data_dir: str,
         artifacts_dir: str,
-        model_name: str,
+        model_key: str,
         hparams: dict[str, any] = None,
         seed: int = 777):
     """Trains a model using the optimal hyperparameters and saves it.
@@ -104,7 +104,7 @@ def train_model(
         The directory where the data is stored.
     artifacts_dir : str
         The directory where the artifacts are stored.
-    model_name : str
+    model_key : str
         The name of the model.
     hparams : dict[str, any]
         The hyperparameters to use. If not provided, they are optimized.
@@ -155,7 +155,7 @@ def train_model(
 
     save_artifacts(
         artifacts_dir=artifacts_dir,
-        model_name=model_name,
+        model_key=model_key,
         model=model,
         model_params=artifacts["model_params"],
         vocabulary_mapping=artifacts["vocabs_mapping"],
@@ -166,7 +166,7 @@ def train_model(
 def evaluate_model(
         data_dir: str,
         artifacts_dir: str,
-        model_name: str):
+        model_key: str):
     """Evaluates the model on the test set.
 
     Results are logged to the console.
@@ -177,14 +177,14 @@ def evaluate_model(
         The directory where the data is stored.
     artifacts_dir : str
         The directory where the artifacts are stored.
-    model_name : str
+    model_key : str
         The name of the model.
 
     """
 
     model, vocabs_mapping, _ = load_model(
         artifacts_dir=artifacts_dir,
-        model_name=model_name,
+        model_key=model_key,
         model_class=TransformerTokenClassification
     )
 

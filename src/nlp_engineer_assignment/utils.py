@@ -148,13 +148,13 @@ def tokenize(
     return tokens
 
 
-def check_model_files(artifacts_dir, model_name):
+def check_model_files(artifacts_dir, model_key):
     """
     Check if the three necessary model files exist.
 
     Parameters:
     ----------
-    model_name: str
+    model_key: str
         The name of the model.
     artifacts_dir: str
         The directory where the model files are stored.
@@ -166,9 +166,9 @@ def check_model_files(artifacts_dir, model_name):
 
     """
     expected_files = [
-        f"{model_name}_state.pt",
-        f"{model_name}_vocabs_mapping.json",
-        f"{model_name}_params.json"
+        f"{model_key}_state.pt",
+        f"{model_key}_vocabs_mapping.json",
+        f"{model_key}_params.json"
     ]
 
     files_exist = all(
@@ -204,7 +204,7 @@ def _save_to_file(path: str, data: plt.Figure | Any):
         raise ValueError("Unsupported data type")
 
 
-def save_artifacts(model_name: str,
+def save_artifacts(model_key: str,
                    model: torch.nn.Module,
                    model_params: dict,
                    vocabulary_mapping: dict,
@@ -216,7 +216,7 @@ def save_artifacts(model_name: str,
 
     Parameters:
     ----------
-    model_name: str
+    model_key: str
         Name of the model, used as a prefix for the files.
     model: torch.nn.Module
         The actual model.
@@ -233,15 +233,15 @@ def save_artifacts(model_name: str,
 
     model_state_path = os.path.join(
         artifacts_dir,
-        f"{model_name}_state.pt"
+        f"{model_key}_state.pt"
     )
     vocabs_mapping_path = os.path.join(
         artifacts_dir,
-        f"{model_name}_vocabs_mapping.json"
+        f"{model_key}_vocabs_mapping.json"
     )
     model_params_path = os.path.join(
         artifacts_dir,
-        f"{model_name}_params.json"
+        f"{model_key}_params.json"
     )
 
     torch.save(model.state_dict(), model_state_path)
@@ -250,16 +250,16 @@ def save_artifacts(model_name: str,
 
     if additional_artifacts is not None:
         for name, data in additional_artifacts.items():
-            path = os.path.join(artifacts_dir, f"{model_name}_{name}")
+            path = os.path.join(artifacts_dir, f"{model_key}_{name}")
             _save_to_file(path, data)
 
 
-def load_model(model_name: str, artifacts_dir: str, model_class: torch.nn.Module):
+def load_model(model_key: str, artifacts_dir: str, model_class: torch.nn.Module):
     """Load the model, model parameters, and vocabulary mapping from disk.
 
     Parameters:
     ----------
-    model_name: str
+    model_key: str
         Name of the model, used as a prefix for the files.
     artifacts_dir: str
         The directory where the model files are stored.
@@ -279,22 +279,22 @@ def load_model(model_name: str, artifacts_dir: str, model_class: torch.nn.Module
 
     model_found = check_model_files(
         artifacts_dir=artifacts_dir,
-        model_name=model_name,
+        model_key=model_key,
     )
     if not model_found:
-        raise FileNotFoundError(f"Files not found for model {model_name}")
+        raise FileNotFoundError(f"Files not found for model {model_key}")
 
     model_state_path = os.path.join(
         artifacts_dir,
-        f"{model_name}_state.pt"
+        f"{model_key}_state.pt"
     )
     vocabs_mapping_path = os.path.join(
         artifacts_dir,
-        f"{model_name}_vocabs_mapping.json"
+        f"{model_key}_vocabs_mapping.json"
     )
     model_params_path = os.path.join(
         artifacts_dir,
-        f"{model_name}_params.json"
+        f"{model_key}_params.json"
     )
 
     with open(vocabs_mapping_path, 'r') as f:
