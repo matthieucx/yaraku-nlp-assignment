@@ -12,6 +12,7 @@ torch = "~1.12"
 uvicorn = "~0.23"
 matplotlib = "~3.8"
 loguru = "~0.7"
+optuna = "~3.5"
 rich = "~13.7"
 
 [tool.poetry.group.dev.dependencies]

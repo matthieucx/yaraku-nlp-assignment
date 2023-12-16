@@ -3,6 +3,7 @@ import json
 from loguru import logger
 from rich.progress import Progress
 import matplotlib.pyplot as plt
+import optuna
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -793,3 +794,116 @@ def plot_training_curves(train_losses, val_losses, train_metric, val_metric, met
     plt.tight_layout()
 
     return fig
+
+
+def objective(trial, train_dataset: TokenClassificationDataset):
+    """Objective function for Optuna.
+
+    The metric to minimize is the average validation loss for the last epoch.
+    To speed up the optimization, the number of epochs is small.
+    Minimizing on loss from the last epoch avoid overly favoring large learning rates.
+    For the assignment, 5 epochs is enough to approach the final loss.
+
+    Parameters
+    ----------
+    trial : optuna.Trial
+        Optuna trial.
+    train_dataset : TokenClassificationDataset
+        Training dataset.
+
+    Returns
+    -------
+    float
+        Average validation loss for the last epoch.
+        Used by the Optuna study as the metric to minimize.
+
+    """
+
+    # Set ranges of hyperparameters to sample from
+    batch_size = trial.suggest_categorical('batch_size', [16, 32, 64, 128])
+    learning_rate = trial.suggest_float('lr', 1e-5, 1e-3, log=True)
+    depth = trial.suggest_int('num_layers', 1, 2)
+    emb = trial.suggest_categorical('emb_size', [32, 64, 128])
+    heads = trial.suggest_categorical('heads', [2, 4])
+    dim_ff = trial.suggest_categorical('dim_ff', [128, 256, 512])
+    dropout_rate = trial.suggest_float('dropout_rate', 0.001, 0.5, log=True)
+
+    epochs = 1
+
+    hparams = {
+        'epochs': epochs,
+        'batch_size': batch_size,
+        'learning_rate': learning_rate,
+        'depth': depth,
+        'emb': emb,
+        'heads': heads,
+        'dim_ff': dim_ff,
+        'dropout_rate': dropout_rate
+    }
+
+    _, _, val_metrics = train_classifier(
+        train_dataset=train_dataset,
+        hparams=hparams
+    )
+
+    val_losses = val_metrics["loss"]
+
+    batches_per_epoch = len(val_losses) // epochs
+    val_losses_last_epoch = val_losses[-batches_per_epoch:]
+
+    return sum(val_losses_last_epoch) / len(val_losses_last_epoch)
+
+
+def optimize_classifier(
+        train_dataset: TokenClassificationDataset,
+        seed: int = 777,
+        n_trials: int = 20,
+        verbose: bool = False) -> dict:
+    """Optimize the hyperparameters of a TransformerTokenClassification model.
+
+    Parameters
+    ----------
+    train_dataset : TokenClassificationDataset
+        Training dataset.
+    seed : int, optional
+        Used to set the seed of the Optuna sampler.
+    n_trials : int, optional
+        Number of trials for the Optuna study.
+        The TPESampler is used, with 10 warmup trials or half the number of trials, whichever is smaller.
+    verbose : bool, optional
+        Whether to display Optuna logs.
+
+    Returns
+    -------
+    best_params : dict
+        The best hyperparameters found by Optuna.
+
+    """
+
+    if not verbose:
+        optuna.logging.set_verbosity(optuna.logging.WARNING)
+
+    logger.info("Starting hyperparameter optimization")
+
+    study = optuna.create_study(
+        study_name="Tune TransformerTokenClassifier",
+        direction="minimize",
+        sampler=optuna.samplers.TPESampler(
+            seed=seed,
+            n_startup_trials=min(10, n_trials // 2)
+        ),
+    )
+
+    study.optimize(
+        lambda trial: objective(trial, train_dataset),
+        n_trials=n_trials,
+        show_progress_bar=True,
+    )
+
+    logger.info("Finished hyperparameter optimization")
+
+    best_params = study.best_trial.params
+
+    logger.info("Best trial: {}", best_params)
+
+    return best_params
