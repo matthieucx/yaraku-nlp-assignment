@@ -1,5 +1,11 @@
 from .dataset import TokenClassificationDataset
-from .transformer import TransformerTokenClassification, evaluate_classifier, optimize_classifier, train_classifier
+from .transformer import (
+    TransformerTokenClassification,
+    evaluate_classifier,
+    optimize_classifier,
+    predict_text,
+    train_classifier
+)
 from .utils import (
     check_model_files,
     count_letters,
@@ -9,6 +15,7 @@ from .utils import (
     read_inputs,
     save_artifacts,
     score,
+    set_logger,
     tokenize
 )
 
@@ -27,4 +34,6 @@ __all__ = [
     "save_artifacts",
     "TransformerTokenClassification",
     "load_hparams",
+    "predict_text",
+    "set_logger"
 ]

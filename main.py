@@ -5,7 +5,6 @@ import numpy as np
 import torch
 import uvicorn
 from loguru import logger
-from rich.logging import RichHandler
 
 from nlp_engineer_assignment import (
     TokenClassificationDataset,
@@ -18,6 +17,7 @@ from nlp_engineer_assignment import (
     read_inputs,
     save_artifacts,
     score,
+    set_logger,
     train_classifier
 )
 
@@ -59,9 +59,9 @@ def main(seed: int = 777):
             model_name=model_name,
             model_class=TransformerTokenClassification
         )
-        logger.info("Found {} in {}", model_name, artifacts_dir)
+        logger.info("Found '{}' in {}", model_name, artifacts_dir)
 
-        return model, vocabs_mapping
+        return model_name, artifacts_dir
 
     except FileNotFoundError as e:
         logger.error(f"Error loading model: {e}")
@@ -86,6 +86,8 @@ def main(seed: int = 777):
         artifacts_dir=artifacts_dir,
         model_name=model_name
     )
+
+    return model_name, artifacts_dir
 
 
 def train_model(
@@ -210,33 +212,11 @@ def evaluate_model(
     sample_idx = np.random.randint(0, len(test_inputs))
     logger.info("Sample input: {}", sample_idx)
     sample = test_dataset[sample_idx]
-    logger.info("Input: {}", sample["text"])
+    logger.info("Input: '{}'", sample["text"])
     logger.info("Gold: {}", sample["target_seq"].tolist())
     logger.info("Pred: {}", pred_np[sample_idx].tolist())
 
     logger.info("Test Accuracy: {:.2f}%", 100.0 * score(golds, pred_np))
-
-
-def set_logger(level: str = "INFO"):
-    """Sets the logger configuration.
-
-    Sets the loguru configuration to use a RichHandler.
-    Allows for compatibility with Rich tools such as the progress bar.
-
-    Parameters:
-    ----------
-    level : str
-        The logging level to use. Default is "INFO".
-
-    """
-    rich_handler = {
-        "sink": RichHandler(markup=True),
-        "format": "{message}",
-        "level": level,
-    }
-    logger.configure(
-        handlers=[rich_handler],
-    )
 
 
 if __name__ == "__main__":
@@ -245,8 +225,12 @@ if __name__ == "__main__":
     set_logger(level="INFO")
 
     with logger.catch():
-        main(seed=SEED)
-        exit(0)
+        model_name, artifacts_dir = main(seed=SEED)
+
+        os.environ["CLF_MODEL_NAME"] = model_name
+        os.environ["ARTIFACTS_DIR"] = artifacts_dir
+        os.environ["CLF_MODEL_CLASS_NAME"] = TransformerTokenClassification.__name__
+
         uvicorn.run(
             "nlp_engineer_assignment.api:app",
             host="0.0.0.0",

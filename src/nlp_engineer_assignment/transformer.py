@@ -11,7 +11,7 @@ from rich.progress import Progress
 from torch.utils.data import DataLoader, random_split
 
 from .dataset import TokenClassificationDataset
-from .utils import score
+from .utils import score, tokenize
 
 
 class BasicLayerNorm(nn.Module):
@@ -378,6 +378,9 @@ class TransformerTokenClassification(nn.Module):
         self.emb = emb
         self.heads = heads
         self.dim_ff = dim_ff
+
+        self.n_classes = n_classes
+        self.n_tokens = n_tokens
 
         self.embedding = TransformerEmbeddings(
             vocab_size=vocab_size, emb=emb, n_tokens=n_tokens, dropout_rate=dropout_rate)
@@ -900,3 +903,52 @@ def optimize_classifier(
     logger.info("Best trial: {}", best_params)
 
     return best_params
+
+
+def predict_text(
+    text: str,
+    model: TransformerTokenClassification,
+    vocabs_mapping: dict[str, int]
+) -> list[int]:
+    """Predict the number of occurrences of each letter in the text up to that point.
+
+    Designed for inference on a single line.
+
+    Parameters
+    ----------
+    text : str
+        Input text. Must be tokenizable to exactly `n_tokens`. See `model` argument.
+    model : TransformerTokenClassification
+        Model to use for prediction. Trained on a fixed sequence length, `n_tokens`.
+    vocabs_mapping : dict[str, int]
+        Mapping from tokens in the vocabulary to indices, used while training the model.
+
+    Returns
+    -------
+    list[int]
+        Predictions for each token in the text.
+
+    """
+
+    model.eval()
+
+    tokens = tokenize(
+        string=text,
+        vocabs=vocabs_mapping
+    )
+
+    n_tokens = model.n_tokens
+
+    if len(tokens) != n_tokens:
+        raise ValueError(
+            f"Input text must be tokenizable to exactly {n_tokens} tokens (found {len(tokens)} tokens)."
+        )
+
+    indices = [vocabs_mapping[token] for token in tokens]
+    indices_tensor = torch.tensor(indices, dtype=torch.long).unsqueeze(0)
+
+    logits = model(indices_tensor)
+    predictions = logits.argmax(dim=-1)
+    preds_list = predictions.squeeze().tolist()
+
+    return preds_list

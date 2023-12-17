@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from loguru import logger
+from rich.logging import RichHandler
 
 
 def count_letters(text: str) -> np.array:
@@ -254,7 +255,10 @@ def save_artifacts(model_name: str,
             _save_to_file(path, data)
 
 
-def load_model(model_name: str, artifacts_dir: str, model_class: torch.nn.Module):
+def load_model(model_name: str,
+               artifacts_dir: str,
+               model_class: torch.nn.Module
+               ) -> tuple[torch.nn.Module, dict[str, int], dict[str, Any]]:
     """Load the model, model parameters, and vocabulary mapping from disk.
 
     Parameters:
@@ -337,3 +341,27 @@ def load_hparams(artifacts_dir, hparams_name):
 
     logger.info(f"Did not find {hparams_name} in {artifacts_dir}")
     return None
+
+
+def set_logger(level: str = "INFO"):
+    """Sets the logger configuration.
+
+    Sets the loguru configuration to use a RichHandler.
+    Allows for compatibility with Rich tools such as the progress bar.
+
+    Another sink could be added for logging to a file.
+
+    Parameters:
+    ----------
+    level : str
+        The logging level to use. Default is "INFO".
+
+    """
+    rich_handler = {
+        "sink": RichHandler(markup=True),
+        "format": "{message}",
+        "level": level,
+    }
+    logger.configure(
+        handlers=[rich_handler],
+    )
