@@ -227,8 +227,8 @@ if __name__ == "__main__":
     with logger.catch():
         model_name, artifacts_dir = main(seed=SEED)
 
-        os.environ["CLF_MODEL_NAME"] = model_name
         os.environ["ARTIFACTS_DIR"] = artifacts_dir
+        os.environ["CLF_MODEL_NAME"] = model_name
         os.environ["CLF_MODEL_CLASS_NAME"] = TransformerTokenClassification.__name__
 
         uvicorn.run(

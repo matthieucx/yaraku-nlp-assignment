@@ -912,7 +912,7 @@ def predict_text(
 ) -> list[int]:
     """Predict the number of occurrences of each letter in the text up to that point.
 
-    Designed for inference on a single line.
+    Designed for inference on a single data point.
 
     Parameters
     ----------
@@ -941,7 +941,7 @@ def predict_text(
 
     if len(tokens) != n_tokens:
         raise ValueError(
-            f"Input text must be tokenizable to exactly {n_tokens} tokens (found {len(tokens)} tokens)."
+            f"Input text must be tokenizable to exactly {n_tokens} tokens. Found {len(tokens)} token(s)."
         )
 
     indices = [vocabs_mapping[token] for token in tokens]
