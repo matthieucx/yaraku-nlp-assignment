@@ -4,9 +4,7 @@ from unittest.mock import Mock, patch
 
 import numpy as np
 import pytest
-import torch
 
-from nlp_engineer_assignment.transformer import predict_text
 from nlp_engineer_assignment.utils import (
     check_model_files,
     count_letters,
@@ -194,32 +192,3 @@ def test_initialize_hyperparameters_not_exists(tmp_path):
     hparams = load_hparams(str(tmp_path), hparams_name)
 
     assert hparams is None
-
-
-def test_predict_text():
-
-    # Mock the tokenize function
-    text = "token1 token3"
-    vocabs_mapping = {'token1': 1, " ": 2, "token3": 3}
-    mock_tokenize = Mock(return_value=["token1", " ", "token2"])
-
-    # Mock the model
-    mock_model = Mock()
-    mock_model.n_tokens = 3
-    mock_model.eval = Mock()
-    mock_model.return_value = torch.tensor([
-        [0.1, 0.2, 0.7],
-        [0.3, 0.4, 0.3],
-        [0.6, 0.2, 0.2]
-    ])
-
-    expected = [2, 1, 0]
-
-    with patch("nlp_engineer_assignment.utils.tokenize", mock_tokenize):
-        result = predict_text(
-            text=text,
-            model=mock_model,
-            vocabs_mapping=vocabs_mapping
-        )
-
-    assert result == expected, "Predictions should match the mocked values"

@@ -23,6 +23,8 @@ flake8 = "~6.1"
 pytest = "~7.4"
 pre-commit = "~3.5"
 isort = "~5.13"
+httpx = "~0.25.2"
+
 
 [tool.autopep8]
 max_line_length = 120

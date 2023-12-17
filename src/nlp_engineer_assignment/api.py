@@ -18,6 +18,10 @@ MODEL_CLASS_MAP = {
 }
 
 
+class PredictionResponse(BaseModel):
+    prediction: str
+
+
 class TextRequest(BaseModel):
     text: str
 
@@ -169,4 +173,4 @@ def predict(
 
     predictions_string = "".join(str(p) for p in preds)
 
-    return {"prediction": predictions_string}
+    return PredictionResponse(prediction=predictions_string)
