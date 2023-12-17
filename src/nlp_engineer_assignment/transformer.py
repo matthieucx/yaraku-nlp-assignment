@@ -819,10 +819,10 @@ def objective(trial, train_dataset: TokenClassificationDataset):
 
     # Set ranges of hyperparameters to sample from
     batch_size = trial.suggest_categorical(
-        'batch_size', [16, 32, 64, 128, 256, 512])
+        'batch_size', [64, 128, 256, 512])
     learning_rate = trial.suggest_float('lr', 1e-5, 1e-2, log=True)
     depth = trial.suggest_int('num_layers', 1, 2)
-    emb = trial.suggest_categorical('emb_size', [32, 64, 96, 128])
+    emb = trial.suggest_categorical('emb_size', [64, 96, 128])
     heads = trial.suggest_categorical('heads', [1, 2, 4])
     dim_ff = trial.suggest_categorical('dim_ff', [128, 256, 512])
     dropout_rate = trial.suggest_float('dropout_rate', 0.001, 0.3, log=True)
@@ -899,10 +899,19 @@ def optimize_classifier(
     logger.info("Finished hyperparameter optimization")
 
     best_params = study.best_trial.params
+    optimization_hist_plot = optuna.visualization.plot_optimization_history(study)  # noqa: E501
+    parallel_coord_plot = optuna.visualization.plot_parallel_coordinate(study)
+
+    optimization_hist_plot.write_html
 
     logger.info("Best trial: {}", best_params)
 
-    return best_params
+    artifacts = {
+        "optuna__optimization_hist_plot": optimization_hist_plot,
+        "optuna__parallel_coord_plot": parallel_coord_plot,
+    }
+
+    return best_params, artifacts
 
 
 def predict_text(

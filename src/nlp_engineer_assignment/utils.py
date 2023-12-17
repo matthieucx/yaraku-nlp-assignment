@@ -4,6 +4,7 @@ from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
+import plotly
 import torch
 from loguru import logger
 from rich.logging import RichHandler
@@ -180,15 +181,17 @@ def check_model_files(artifacts_dir, model_name):
     return files_exist
 
 
-def _save_to_file(path: str, data: plt.Figure | Any):
+def _save_to_file(path: str, data: plt.Figure | plotly.graph_objs.Figure | dict):
     """Save data to disk.
 
     Parameters:
     ----------
     path: str
         The path to the file.
-    data: plt.Figure | any
-        The data to save. Can be a matplotlib figure or any serializable object.
+    data: plt.Figure | plotly.graph_objs.Figure | dict
+        The data to save.
+        Can be a Python dictionary, a Matplotlib figure or a Plotly figure.
+
 
     """
 
@@ -200,17 +203,47 @@ def _save_to_file(path: str, data: plt.Figure | Any):
 
     elif isinstance(data, plt.Figure):
         data.savefig(path)
+        plt.close(data)
+
+    elif isinstance(data, plotly.graph_objs.Figure):
+        if not path.endswith(".html"):
+            path += ".html"
+        data.write_html(path, include_plotlyjs="cdn")
 
     else:
         raise ValueError("Unsupported data type")
 
 
-def save_artifacts(model_name: str,
-                   model: torch.nn.Module,
-                   model_params: dict,
-                   vocabulary_mapping: dict,
-                   artifacts_dir: str,
-                   additional_artifacts: dict = None):
+def save_artifacts(
+        artifacts_dir: str,
+        artifacts: dict[str, Any]
+):
+    """Save artifacts to disk.
+
+    Parameters:
+    ----------
+    artifacts_dir: str
+        The directory where the artifacts will be saved.
+    artifacts: dict[str, Any]
+        The artifacts to save.
+
+    """
+
+    os.makedirs(artifacts_dir, exist_ok=True)
+
+    for name, data in artifacts.items():
+        path = os.path.join(artifacts_dir, name)
+        _save_to_file(path, data)
+
+
+def save_model(
+    model_name: str,
+    model: torch.nn.Module,
+    model_params: dict,
+    vocabulary_mapping: dict,
+    artifacts_dir: str,
+    additional_artifacts: dict = None
+):
     """Save the model, model parameters, and vocabulary mapping to disk.
 
     Will save training curves and other artifacts if provided.

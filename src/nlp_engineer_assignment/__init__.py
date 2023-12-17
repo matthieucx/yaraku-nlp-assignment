@@ -14,6 +14,7 @@ from .utils import (
     print_line,
     read_inputs,
     save_artifacts,
+    save_model,
     score,
     set_logger,
     tokenize
@@ -31,6 +32,7 @@ __all__ = [
     "TokenClassificationDataset",
     "check_model_files",
     "load_model",
+    "save_model",
     "save_artifacts",
     "TransformerTokenClassification",
     "load_hparams",

@@ -10,7 +10,7 @@ from nlp_engineer_assignment.utils import (
     count_letters,
     load_hparams,
     load_model,
-    save_artifacts,
+    save_model,
     score,
     tokenize
 )
@@ -119,7 +119,7 @@ def test_save_artifacts(tmp_path):
     model_params = {"param1": "value1"}
     vocab_mapping = {"vocab1": "mapping1"}
 
-    save_artifacts(
+    save_model(
         model_name=model_name,
         model=mock_model,
         model_params=model_params,

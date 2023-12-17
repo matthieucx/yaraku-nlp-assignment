@@ -1,4 +1,3 @@
-import json
 import os
 
 import numpy as np
@@ -16,6 +15,7 @@ from nlp_engineer_assignment import (
     print_line,
     read_inputs,
     save_artifacts,
+    save_model,
     score,
     set_logger,
     train_classifier
@@ -54,7 +54,7 @@ def main(seed: int = 777):
     model_name = "optimal_model"
 
     try:
-        model, vocabs_mapping, _ = load_model(
+        _, _, _ = load_model(
             artifacts_dir=artifacts_dir,
             model_name=model_name,
             model_class=TransformerTokenClassification
@@ -134,10 +134,13 @@ def train_model(
 
         logger.info("Searching for optimal parameters...")
 
-        hparams = optimize_classifier(
+        hparams, artifacts = optimize_classifier(
             train_dataset, n_trials=30, seed=seed)
-        with open(os.path.join(artifacts_dir, "optimal_hparams.json"), "w") as f:
-            json.dump(hparams, f, indent=4)
+        artifacts["optimal_hparams"] = hparams
+        save_artifacts(
+            artifacts_dir=artifacts_dir,
+            artifacts=artifacts
+        )
 
         logger.info("Found and saved optimal parameters")
         print_line()
@@ -155,7 +158,7 @@ def train_model(
         if k not in ["model_params", "vocabs_mapping"]
     }
 
-    save_artifacts(
+    save_model(
         artifacts_dir=artifacts_dir,
         model_name=model_name,
         model=model,
