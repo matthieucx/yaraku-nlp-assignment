@@ -22,6 +22,8 @@ This repository contains my submission for the coding assignment for the NLP Eng
 
 - Model serving through a FastAPI app
 
+Unit tests are provided for most of the codebase, including the FastAPI app.
+
 The trained model achieves a reasonable performance on the test data, with over 99% accuracy with the provided scoring function. Tuned hyperparameters can be found in the `artifacts/` folder.
 
 ## Workflow
