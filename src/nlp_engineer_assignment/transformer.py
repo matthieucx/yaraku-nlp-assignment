@@ -126,6 +126,9 @@ class MultiHeadSelfAttention(nn.Module):
     As in the paper, this implementation use the same dimension for queries/keys (d_k) and values (d_v).
     This dimension is equal to the head dimension, set as emb // heads.
 
+    Multi-head attention allows models to jointly attend to information from different data representations.
+    This helps in capturing different relationships in the data.
+
     Parameters
     ----------
     emb : int
@@ -279,7 +282,7 @@ class TransformerEmbeddings(nn.Module):
     Embeddings provide the model with information about the meaning of each token.
     Positional encoding is achieved with positional embeddings, as used for `BERT <https://arxiv.org/abs/1810.04805>`_.
     Positional embeddings provide the model with information about the relative position of tokens in the sequence.
-    This is crucial for the given task, as the model needs to understand cooccurrences of the same token.
+    This is crucial for the given task, as the model needs to track the occurrences of each token within the sequence.
 
     Parameters
     ----------
@@ -336,7 +339,7 @@ class TransformerTokenClassification(nn.Module):
     The model is a Transformer encoder, as defined in `Attention Is All You Need <https://arxiv.org/abs/1706.03762>`_.
     Positional encoding is achieved with positional embeddings, as used for `BERT <https://arxiv.org/abs/1810.04805>`_.
     Positional embeddings provide the model with information about the relative position of tokens in the sequence.
-    This is crucial for the given task, as the model needs to understand cooccurrences of the same token.
+    This is crucial for the given task, as the model needs to track the occurrences of each token within the sequence.
 
     It is specialized for token classification tasks, through the use of a linear layer.
     Each token in the output is labeled in a single forward pass.
@@ -800,7 +803,7 @@ def objective(trial, train_dataset: TokenClassificationDataset):
     The metric to minimize is the average validation loss for the last epoch.
     To speed up the optimization, the number of epochs is small.
     Minimizing on loss from the last epoch avoid overly favoring large learning rates.
-    For the assignment, 5 epochs is enough to approach the final loss.
+    For the assignment, 5 epochs are enough to approach the final validation loss.
 
     Parameters
     ----------

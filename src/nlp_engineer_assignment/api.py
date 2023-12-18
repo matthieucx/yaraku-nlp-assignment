@@ -136,8 +136,7 @@ def predict(
         tuple[nn.Module, dict[str, int]], Depends(get_model),
     ],
 ):
-    """
-    Predict the number of occurrences of each letter in the text up to that point.
+    """Predicts the number of occurrences of each letter in the text up to that point.
 
     Parameters
     ----------

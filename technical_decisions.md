@@ -1,10 +1,10 @@
 # Technical Decisions
 
-This file contains information motivating the technical decisions made in this project. Most of this information can be found in the comments of relevant commits.
+This file contains information motivating the technical decisions made in this project.
 
 ## Git workflow
 
-Given the scope of this project, and to facilitate reviewing its content after the assignment has been submitted, it has been kept on a single branch. Comments on commits serve the same role as the discussions on pull requests.
+Given the scope of this project, and to facilitate reviewing its content after the assignment has been submitted, it has been kept on a single branch. Commit messages are descriptive and should allow for a clear understanding of the development process.
 
 ## Dependency management
 
@@ -31,13 +31,14 @@ The `poetry.lock` file is kept in sync with the dependencies declaration in `pyp
 - pytest is used for unit testing
 - autopep8 is used for autoformatting
 - flake8 is used for linting
+- isort is used for sorting imports
 
-All 3 of them can be run using your IDE, which is recommended.
+All 4 of them can be run using your IDE, which is recommended.
 
-Autoformatting is executed as a pre-commit, because:
+Autoformatting and import sorting are executed as pre-commit hooks, because:
 
-- All committed code will be formatted, streamlining parsing and reviewing
-- Autoformatting does not prevent commits
+- It allows for a consistent style throughout the codebase, whether production code or work-in-progress
+- They happen automatically, without requiring any action from the developer
 
 Pre-commits should not prevent commits as this hinders workflows. Linting and testing are blocking, requiring errors to be fixed. They are better used in a CI pipeline.
 
@@ -46,6 +47,12 @@ Pre-commits should not prevent commits as this hinders workflows. Linting and te
 Pre-commit is a powerful tool to define and share git pre-commit hooks whilst ensuring consistent behaviors.
 
 Files modified by a pre-commit hook are not staged automatically, on purpose ([see this post by the tool's creator](https://stackoverflow.com/questions/64309766/prettier-using-pre-commit-com-does-not-re-stage-changes/64309843#64309843)), ensuring all committed code has been approved by a human.
+
+In addition to autoformatting and import sorting, pre-commit hooks will also check for:
+- Trailing whitespaces
+- End of file newline
+- Known typos in the codebase
+- Up-to-date `poetry.lock` file (in sync with `pyproject.toml`)
 
 #### Pin Python version used by pre-commit
 
