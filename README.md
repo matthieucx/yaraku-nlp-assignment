@@ -71,8 +71,9 @@ Navigate to http://localhost:8000/docs to access the Swagger UI and test the API
 - autopep8 is used for autoformatting
 - flake8 is used for linting
 - isort is used for sorting imports
+- mypy is used for static type checking
 
-All 4 of them can be run using your IDE, which is recommended. They can also be invoked from the CLI, using `poetry run <tool>`.
+All 5 of them can be run using your IDE, which is recommended. They can also be invoked from the CLI, using `poetry run <tool>`.
 
 Autoformatting and import sorting are executed as pre-commit hooks, ensuring a consistent style throughout the codebase.
 

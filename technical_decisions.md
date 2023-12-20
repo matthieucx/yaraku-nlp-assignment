@@ -32,15 +32,16 @@ The `poetry.lock` file is kept in sync with the dependencies declaration in `pyp
 - autopep8 is used for autoformatting
 - flake8 is used for linting
 - isort is used for sorting imports
+- mypy is used for static type checking
 
-All 4 of them can be run using your IDE, which is recommended.
+All 5 of them can be run using your IDE, which is recommended.
 
 Autoformatting and import sorting are executed as pre-commit hooks, because:
 
 - It allows for a consistent style throughout the codebase, whether production code or work-in-progress
 - They happen automatically, without requiring any action from the developer
 
-Pre-commits should not prevent commits as this hinders workflows. Linting and testing are blocking, requiring errors to be fixed. They are better used in a CI pipeline.
+Pre-commits should not prevent commits as this hinders workflows. Linting, testing and type checking are blocking, requiring errors to be fixed. They are better used in a CI pipeline.
 
 ### Pre-commit
 
@@ -92,6 +93,20 @@ This would not allow the use of the configuration from `pyproject.toml`.
 This could be used in an IDE, [as suggested here by a pre-commit maintainer](https://stackoverflow.com/questions/70127649/how-to-have-a-single-source-of-truth-for-poetry-and-pre-commit-package-version/70136571#70136571).
 Examples [for PyCharm](https://stackoverflow.com/questions/76062147/how-to-run-pre-commit-on-current-active-file-in-pycharm), [for VSCode](https://github.com/magicmark/pre-commit-vscode).
 Those integrations are cumbersome and clunky and should not be imposed on contributors.
+
+</details>
+
+### Type checking
+<details>
+    <summary>Expand</summary>
+
+MyPy's type checking is configured to allow gradual typing. Type hints are powerful and can be used to improve code quality. However, they should not hinder readability and flexibility. Advanced functionalities, such as TypeVars, can be used to limit clutter.
+
+They helped me catch an issue in the `BasicLayerNorm` implementation, where wrong keywords were given to `torch.Tensor.mean()` and `torch.Tensor.std()`. The issue was transparent, as their interpretation as positional arguments provided the correct result.
+
+I believe type hints are beneficial to this assignment, and to any production-grade codebase.
+
+There is redundancy between type checking and docstrings. [The Numpy style provides no guidance on this matter](https://github.com/numpy/numpydoc/issues/196). I believe keeping type hinting only in function signatures makes more sense, as documentation generation tools can integrate them. Ultimately, teams should set their own guidelines.
 
 </details>
 
