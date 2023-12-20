@@ -1,3 +1,5 @@
+from typing import Any
+
 import torch
 from torch.utils.data import Dataset
 
@@ -36,7 +38,7 @@ class TokenClassificationDataset(Dataset):
 
     """
 
-    def __init__(self, text_data: list, vocabs: list = None, vocabs_mapping: dict[str, int] = None):
+    def __init__(self, text_data: list, vocabs: list | None = None, vocabs_mapping: dict[str, int] | None = None):
 
         if (vocabs_mapping is None) == (vocabs is None):
             raise TypeError(
@@ -54,6 +56,7 @@ class TokenClassificationDataset(Dataset):
             self.vocabs_mapping = vocabs_mapping
 
         else:
+            assert vocabs is not None  # Explicitly assert for MyPy
             if len(vocabs) == 0:
                 raise ValueError("vocabs must be non-empty.")
             # Map tokens to indices based on first appearance, with special tokens first
@@ -70,10 +73,10 @@ class TokenClassificationDataset(Dataset):
         # Pre-compute the maximum token length for efficient tokenization
         self.max_token_length = len(max(self.vocabs_mapping, key=len))
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.data)
 
-    def __getitem__(self, idx: int) -> dict:
+    def __getitem__(self, idx: int) -> dict[str, Any]:
         """Get a single data point (input, target, text).
 
         Parameters
@@ -83,7 +86,7 @@ class TokenClassificationDataset(Dataset):
 
         Returns
         -------
-        sample : dict
+        sample : dict[str, Any]
             A dictionary containing the indices of the tokens in the input,
             the target labels per token, and the original text.
 

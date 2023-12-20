@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any
+from typing import Any, Type
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,7 +10,7 @@ from loguru import logger
 from rich.logging import RichHandler
 
 
-def count_letters(text: str) -> np.array:
+def count_letters(text: str) -> np.ndarray:
     """
     Count the number of times each letter appears in the text up to that point
 
@@ -21,7 +21,7 @@ def count_letters(text: str) -> np.array:
 
     Returns
     -------
-    np.array
+    np.ndarray
         A vector of counts, one for each letter in the text
     """
     output = np.zeros(len(text), dtype=np.int32)
@@ -31,7 +31,7 @@ def count_letters(text: str) -> np.array:
     return output
 
 
-def print_line():
+def print_line() -> None:
     """
     Print a line of dashes
     """
@@ -59,17 +59,17 @@ def read_inputs(path: str) -> list:
 
 
 def score(
-    golds: np.array,
-    predictions: np.array
+    golds: np.ndarray,
+    predictions: np.ndarray
 ) -> float:
     """
     Compute the accuracy of the predictions
 
     Parameters
     ----------
-    golds : np.array
+    golds : np.ndarray
         Ground truth labels
-    predictions : np.array
+    predictions : np.ndarray
         Predicted labels
 
     Returns
@@ -83,7 +83,7 @@ def score(
 def tokenize(
         string: str,
         vocabs: list[str] | set[str] | dict[str, int],
-        max_token_length: int = None,
+        max_token_length: int | None = None,
         verbose: bool = False
 ) -> list[str]:
     """Tokenize a string using a vocabulary list.
@@ -106,6 +106,8 @@ def tokenize(
         Maximum length of a token, by default None.
         Set to the length of the longest string in the vocabulary if not provided.
         Should be provided if tokenizing a large number of strings.
+    verbose : bool, optional
+        Whether to warn when an unknown token is found, by default False.
 
     Returns
     -------
@@ -150,7 +152,7 @@ def tokenize(
     return tokens
 
 
-def check_model_files(artifacts_dir, model_name):
+def check_model_files(artifacts_dir: str, model_name: str) -> bool:
     """
     Check if the three necessary model files exist.
 
@@ -181,7 +183,7 @@ def check_model_files(artifacts_dir, model_name):
     return files_exist
 
 
-def _save_to_file(path: str, data: plt.Figure | plotly.graph_objs.Figure | dict):
+def _save_to_file(path: str, data: plt.Figure | plotly.graph_objs.Figure | dict) -> None:
     """Save data to disk.
 
     Parameters:
@@ -217,7 +219,7 @@ def _save_to_file(path: str, data: plt.Figure | plotly.graph_objs.Figure | dict)
 def save_artifacts(
         artifacts_dir: str,
         artifacts: dict[str, Any]
-):
+) -> None:
     """Save artifacts to disk.
 
     Parameters:
@@ -242,8 +244,8 @@ def save_model(
     model_params: dict,
     vocabulary_mapping: dict,
     artifacts_dir: str,
-    additional_artifacts: dict = None
-):
+    additional_artifacts: dict | None = None
+) -> None:
     """Save the model, model parameters, and vocabulary mapping to disk.
 
     Will save training curves and other artifacts if provided.
@@ -258,7 +260,7 @@ def save_model(
         The parameters used to initialize the model.
     vocabulary_mapping: dict
         The vocabulary mapping used to tokenize the training data.
-    artifacts_dir: str
+    artifacts_dir: str, optional
         The directory where the model files will be saved.
 
     """
@@ -290,7 +292,7 @@ def save_model(
 
 def load_model(model_name: str,
                artifacts_dir: str,
-               model_class: torch.nn.Module
+               model_class: Type[torch.nn.Module]
                ) -> tuple[torch.nn.Module, dict[str, int], dict[str, Any]]:
     """Load the model, model parameters, and vocabulary mapping from disk.
 
@@ -300,16 +302,16 @@ def load_model(model_name: str,
         Name of the model, used as a prefix for the files.
     artifacts_dir: str
         The directory where the model files are stored.
-    model_class: torch.nn.Module
+    model_class: Type[torch.nn.Module]
         The class of the model.
 
     Returns:
     -------
     model: torch.nn.Module
         The actual model.
-    vocabs_mapping: dict
+    vocabs_mapping: dict[str, int]
         The vocabulary mapping used to tokenize the training data.
-    model_params: dict
+    model_params: dict[str, Any]
         The parameters used to initialize the model.
 
     """
@@ -346,7 +348,7 @@ def load_model(model_name: str,
     return model, vocabs_mapping, model_params
 
 
-def load_hparams(artifacts_dir, hparams_name):
+def load_hparams(artifacts_dir: str, hparams_name: str) -> dict[str, Any] | None:
     """Load the hyperparameters from disk.
 
     Parameters:
@@ -358,7 +360,7 @@ def load_hparams(artifacts_dir, hparams_name):
 
     Returns:
     -------
-    dict
+    dict[str, Any] | None
         The hyperparameters, or None if the file was not found.
 
     """
@@ -376,7 +378,7 @@ def load_hparams(artifacts_dir, hparams_name):
     return None
 
 
-def set_logger(level: str = "INFO"):
+def set_logger(level: str = "INFO") -> None:
     """Sets the logger configuration.
 
     Sets the loguru configuration to use a RichHandler.

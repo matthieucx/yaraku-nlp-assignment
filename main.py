@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 import numpy as np
 import torch
@@ -22,7 +23,7 @@ from nlp_engineer_assignment import (
 )
 
 
-def main(seed: int = 777):
+def main(seed: int = 777) -> tuple[str, str]:
     """Main function for the assignment.
 
     Runs the following steps:
@@ -38,6 +39,13 @@ def main(seed: int = 777):
     seed : int
         The random seed to use. Default is 777.
         It is propagated to Optuna, PyTorch, and NumPy.
+
+    Returns:
+    -------
+    model_name : str
+        The name of the trained model.
+    artifacts_dir : str
+        The directory where the artifacts are stored.
 
     """
 
@@ -94,8 +102,9 @@ def train_model(
         data_dir: str,
         artifacts_dir: str,
         model_name: str,
-        hparams: dict[str, any] = None,
-        seed: int = 777):
+        hparams: dict[str, Any] | None = None,
+        seed: int = 777
+) -> None:
     """Trains a model using the optimal hyperparameters and saves it.
 
     If the hyperparameters are not provided, they are optimized using Optuna.
@@ -108,8 +117,8 @@ def train_model(
         The directory where the artifacts are stored.
     model_name : str
         The name of the model.
-    hparams : dict[str, any]
-        The hyperparameters to use. If not provided, they are optimized.
+    hparams : dict[str, any], optional
+        The hyperparameters to use. If not provided, they are found using an optimization procedure.
     seed : int
         The random seed to use. Default is 777.
 
@@ -171,7 +180,8 @@ def train_model(
 def evaluate_model(
         data_dir: str,
         artifacts_dir: str,
-        model_name: str):
+        model_name: str
+) -> None:
     """Evaluates the model on the test set.
 
     Results are logged to the console.
@@ -208,7 +218,8 @@ def evaluate_model(
     )
     pred_np = pred.numpy()
     golds = np.array(
-        [sample["target_seq"] for sample in test_dataset]
+        [sample["target_seq"]
+            for sample in test_dataset]  # type: ignore[attr-defined]
     )
 
     # Display a sample input and its prediction

@@ -1,7 +1,6 @@
-
 from contextlib import asynccontextmanager
 from functools import lru_cache
-from typing import Type
+from typing import Annotated, Any, AsyncGenerator, Type
 
 import torch.nn as nn
 from fastapi import Depends, FastAPI, HTTPException
@@ -9,7 +8,6 @@ from loguru import logger
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 from starlette.responses import RedirectResponse
-from typing_extensions import Annotated
 
 from nlp_engineer_assignment import TransformerTokenClassification, load_model, predict_text, set_logger
 
@@ -34,6 +32,10 @@ class Settings(BaseSettings):
 
 
 def get_model_class(settings: Settings) -> Type[nn.Module]:
+    """Returns the class of the model to use for inference.
+
+    """
+
     clf_model_class_name = settings.clf_model_class_name
 
     if clf_model_class_name in MODEL_CLASS_MAP:
@@ -43,12 +45,19 @@ def get_model_class(settings: Settings) -> Type[nn.Module]:
 
 
 @lru_cache
-def get_settings():
+def get_settings() -> Settings:
+    """Returns the settings for the application.
+
+    """
+
     return Settings()
 
 
 @lru_cache
-def get_model():
+def get_model() -> tuple[nn.Module, dict[str, int]]:
+    """Returns the selected model and its vocabulary.
+
+    """
 
     settings = get_settings()
     clf_model_class = get_model_class(settings)
@@ -62,7 +71,7 @@ def get_model():
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Initialize FastAPI and add variables
 
     """
@@ -89,7 +98,7 @@ app = FastAPI(
 
 
 @app.get("/", include_in_schema=False)
-async def index():
+async def index() -> RedirectResponse:
     """
     Redirects to the OpenAPI Swagger UI
     """
@@ -101,8 +110,8 @@ async def info(
     settings: Annotated[
         Settings, Depends(get_settings)],
     model_resources: Annotated[
-        tuple[nn.Module, dict[str, int]], Depends(get_model),],
-):
+        tuple[nn.Module, dict[str, int]], Depends(get_model)],
+) -> dict[str, Any]:
     """Returns information about the model, what it does and how to use it for inference.
 
     """
@@ -135,7 +144,7 @@ def predict(
     model_resources: Annotated[
         tuple[nn.Module, dict[str, int]], Depends(get_model),
     ],
-):
+) -> PredictionResponse:
     """Predicts the number of occurrences of each letter in the text up to that point.
 
     Parameters

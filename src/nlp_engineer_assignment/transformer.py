@@ -1,4 +1,5 @@
 from itertools import chain
+from typing import Any, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -45,7 +46,7 @@ class BasicLayerNorm(nn.Module):
 
     """
 
-    def __init__(self, normalized_shape: int, eps=1e-5) -> None:
+    def __init__(self, normalized_shape: int, eps: float = 1e-5) -> None:
         super().__init__()
 
         self.gain = nn.Parameter(torch.ones(normalized_shape))
@@ -53,7 +54,7 @@ class BasicLayerNorm(nn.Module):
 
         self.eps = eps
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Compute the layer normalization.
 
         Parameters
@@ -67,8 +68,8 @@ class BasicLayerNorm(nn.Module):
             Output tensor, shape (*, embedding).
         """
 
-        x_mean = x.mean(axis=-1, keepdims=True)
-        x_std = x.std(axis=-1, keepdims=True, unbiased=False)
+        x_mean = x.mean(dim=-1, keepdim=True)
+        x_std = x.std(dim=-1, keepdim=True, unbiased=False)
         x_normalized = (x - x_mean) / (x_std + self.eps)
 
         return self.gain * x_normalized + self.bias
@@ -92,7 +93,12 @@ class ScaledDotProductAttention(nn.Module):
 
         self.d_k = d_k
 
-    def forward(self, queries, keys, values):
+    def forward(
+        self,
+        queries: torch.Tensor,
+        keys: torch.Tensor,
+        values: torch.Tensor
+    ) -> torch.Tensor:
         """Compute the attention scores.
 
         Parameters
@@ -157,7 +163,7 @@ class MultiHeadSelfAttention(nn.Module):
 
         self.merge_heads = nn.Linear(emb, emb, bias=False)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Compute the multi-head attention.
 
         Parameters
@@ -226,7 +232,7 @@ class TransformerEncoderLayer(nn.Module):
 
     """
 
-    def __init__(self, emb: int, heads: int, dim_ff: int = None, dropout_rate: float = 0.1):
+    def __init__(self, emb: int, heads: int, dim_ff: int | None = None, dropout_rate: float = 0.1):
         super().__init__()
 
         self.emb = emb
@@ -240,14 +246,14 @@ class TransformerEncoderLayer(nn.Module):
 
         # Sub-layer 2: Feed-forward network
         self.ff = nn.Sequential(
-            nn.Linear(emb, dim_ff),
+            nn.Linear(emb, self.dim_ff),
             nn.ReLU(),
-            nn.Linear(dim_ff, emb)
+            nn.Linear(self.dim_ff, emb)
         )
         self.dropout_2 = nn.Dropout(dropout_rate)
         self.layer_norm_2 = BasicLayerNorm(normalized_shape=emb)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Compute a forward pass through the Transformer encoder layer.
 
         Parameters
@@ -305,7 +311,7 @@ class TransformerEmbeddings(nn.Module):
             num_embeddings=n_tokens, embedding_dim=emb)
         self.dropout = nn.Dropout(dropout_rate)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Compute the embeddings.
 
         Each token is mapped to an embedding vector.
@@ -395,7 +401,7 @@ class TransformerTokenClassification(nn.Module):
         # Compute logits for each class, for each token
         self.to_classes = nn.Linear(emb, n_classes)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
 
         Parameters
@@ -418,17 +424,19 @@ class TransformerTokenClassification(nn.Module):
         return class_logits
 
 
-def train_epoch(model: TransformerTokenClassification,
-                dataloader: DataLoader[TokenClassificationDataset],
-                optimizer,
-                criterion,) -> float:
+def train_epoch(
+        model: nn.Module,
+        dataloader: DataLoader,
+        optimizer: torch.optim.Optimizer,
+        criterion: torch.nn.modules.loss._Loss
+) -> Tuple[list[float], list[float]]:
     """Train the model using the training dataloader for one epoch.
 
     Parameters
     ----------
-    model : TransformerTokenClassification
+    model : nn.Module
         Model to train.
-    dataloader : DataLoader[TokenClassificationDataset]
+    dataloader : DataLoader
         Training dataloader.
     optimizer
         Optimizer.
@@ -472,16 +480,18 @@ def train_epoch(model: TransformerTokenClassification,
     return batch_losses, batch_accuracies
 
 
-def validate_epoch(model: TransformerTokenClassification,
-                   dataloader: DataLoader[TokenClassificationDataset],
-                   criterion) -> float:
+def validate_epoch(
+        model: nn.Module,
+        dataloader: DataLoader,
+        criterion: nn.modules.loss._Loss,
+) -> Tuple[list[float], list[float]]:
     """Validate the model using the validation dataloader for one epoch.
 
     Parameters
     ----------
-    model : TransformerTokenClassification
+    model : nn.Module
         Model to validate.
-    dataloader : DataLoader[TokenClassificationDataset]
+    dataloader : DataLoader
         Validation dataloader.
     criterion
         Loss function.
@@ -519,16 +529,20 @@ def validate_epoch(model: TransformerTokenClassification,
     return batch_losses, batch_accuracies
 
 
-def evaluate_classifier(model: TransformerTokenClassification,
-                        test_dataset: TokenClassificationDataset,
-                        batch_size: int = 256) -> torch.Tensor:
+def evaluate_classifier(
+        model: nn.Module,
+        test_dataset: torch.utils.data.Dataset,
+        batch_size: int = 256
+) -> torch.Tensor:
     """Returns the predictions of the model on the test set, for further evaluation.
+
+    Designed to work with models trained on a fixed sequence length.
 
     Parameters
     ----------
-    model : TransformerTokenClassification
+    model : nn.Module
         Model to test.
-    test_dataset : TokenClassificationDataset
+    test_dataset : torch.utils.data.Dataset
         Test dataset.
     batch_size : int, optional
         Batch size.
@@ -544,10 +558,12 @@ def evaluate_classifier(model: TransformerTokenClassification,
 
     dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-    if len(test_dataset) == 0:
+    n_samples = len(test_dataset)  # type: ignore[arg-type]
+
+    if n_samples == 0:
         return torch.tensor([], dtype=torch.long)
 
-    predictions = []
+    preds = []
 
     with torch.no_grad():
         for batch in dataloader:
@@ -555,21 +571,20 @@ def evaluate_classifier(model: TransformerTokenClassification,
             indices = batch["indices"]
             pred = model(indices)
             pred = pred.argmax(dim=-1)
-            predictions.append(pred)
+            preds.append(pred)
 
-    num_samples = len(test_dataset)
     n_tokens = test_dataset[0]["indices"].numel()
 
     # We have a fixed sequence length, we can concatenate the predictions and view as below
-    predictions = torch.cat(predictions)
+    predictions = torch.cat(preds)
 
-    return predictions.view(num_samples, n_tokens)
+    return predictions.view(n_samples, n_tokens)
 
 
 def train_classifier(
     train_dataset: TokenClassificationDataset,
-    hparams: dict = None,
-) -> (TransformerTokenClassification, dict[str, any]):
+    hparams: dict | None = None,
+) -> Tuple[TransformerTokenClassification, dict[str, Any]]:
     """Train a TransformerTokenClassification model.
 
     Parameters
@@ -739,8 +754,15 @@ def train_classifier(
     return model, artifacts
 
 
-def plot_training_curves(train_losses, val_losses, train_metric, val_metric, metric_name="Performance metric",
-                         loss_name="Loss function", epochs=None):
+def plot_training_curves(
+        train_losses: list[float],
+        val_losses: list[float],
+        train_metric: list[float],
+        val_metric: list[float],
+        metric_name: str = "Performance metric",
+        loss_name: str = "Loss function",
+        epochs: int | None = None
+) -> plt.Figure:
     """Plot the training/validation loss and performance metric curves.
 
     Parameters
@@ -755,8 +777,10 @@ def plot_training_curves(train_losses, val_losses, train_metric, val_metric, met
         Validation metric for each batch in each epoch.
     metric_name : str, optional
         Name of the performance metric.
-    metric_name : str
+    loss_name : str, optional
         Name of the performance metric.
+    epochs : int, optional
+        Number of epochs.
     """
 
     fig, (ax1, ax2) = plt.subplots(nrows=2, figsize=(10, 12))
@@ -797,7 +821,10 @@ def plot_training_curves(train_losses, val_losses, train_metric, val_metric, met
     return fig
 
 
-def objective(trial, train_dataset: TokenClassificationDataset):
+def objective(
+    trial: optuna.Trial,
+    train_dataset: TokenClassificationDataset
+) -> float:
     """Objective function for Optuna.
 
     The metric to minimize is the average validation loss for the last epoch.
@@ -857,7 +884,8 @@ def optimize_classifier(
         train_dataset: TokenClassificationDataset,
         seed: int = 777,
         n_trials: int = 20,
-        verbose: bool = False) -> dict:
+        verbose: bool = False
+) -> Tuple[dict[str, Any], dict[str, Any]]:
     """Optimize the hyperparameters of a TransformerTokenClassification model.
 
     Parameters
@@ -874,8 +902,11 @@ def optimize_classifier(
 
     Returns
     -------
-    best_params : dict
+    best_params : dict[str, Any]
         The best hyperparameters found by Optuna.
+    artifacts : dict[str, Any]
+        Dictionary of artifacts from the hyperparameter optimization process.
+        Includes: Optimization history plot, parallel coordinate plot.
 
     """
 
@@ -919,18 +950,18 @@ def optimize_classifier(
 
 def predict_text(
     text: str,
-    model: TransformerTokenClassification,
+    model: nn.Module,
     vocabs_mapping: dict[str, int]
 ) -> list[int]:
     """Predict the number of occurrences of each letter in the text up to that point.
 
-    Designed for inference on a single data point.
+    Designed for inference on a single data point. Expect models trained on a fixed sequence length.
 
     Parameters
     ----------
     text : str
         Input text. Must be tokenizable to exactly `n_tokens`. See `model` argument.
-    model : TransformerTokenClassification
+    model : nn.Module
         Model to use for prediction. Trained on a fixed sequence length, `n_tokens`.
     vocabs_mapping : dict[str, int]
         Mapping from tokens in the vocabulary to indices, used while training the model.
