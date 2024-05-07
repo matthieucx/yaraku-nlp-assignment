@@ -1,6 +1,9 @@
+> [!CAUTION]
+> Always check the Glassdoor reviews for companies you're applying to.
+
 # NLP Engineer Assignment
 
-This repository contains my submission for the coding assignment for the NLP Engineer position at Yaraku, Inc.
+This repository contains my submission for the coding assignment for the NLP Engineer position at Yaraku, Inc. Instructions for this assignment can be found in `instructions.pdf` and in `assignment-directives.md`. This assignment was followed by a technical interview and a final interview with the CTO; after which I got an offer from Yaraku.
 
 ## Tasks completed
 
