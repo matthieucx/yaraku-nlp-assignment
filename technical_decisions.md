@@ -1,3 +1,6 @@
+> [!CAUTION]
+> This file is outdated, this repository has been switched to better, more recent tools. Rust-based type-checkers' speed allow them to be run as pre-commits.
+
 # Technical Decisions
 
 This file contains information motivating the technical decisions made in this project.

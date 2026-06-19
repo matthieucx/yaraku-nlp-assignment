@@ -1,31 +1,39 @@
-default_language_version:
-    python: python3.10.13
 exclude: ^data/
+# Allows hooks to run on the following stages
+# Necessary for uv sync
+default_install_hook_types:
+  - pre-commit
+  - post-checkout
+  - post-merge
+  - post-rewrite
+default_stages: [pre-commit]
 
 repos:
-    - repo: local
-      hooks:
-          - id: autopep8
-            name: autopep8
-            entry: poetry run autopep8
-            language: system
-            types: [file, python]
-          - id: isort
-            name: isort
-            entry: poetry run isort
-            language: system
-            types: [file, python]
-    - repo: https://github.com/python-poetry/poetry
-      rev: "1.6.1"
-      hooks:
-          - id: poetry-lock
-            args: [--no-update]
-    - repo: https://github.com/pre-commit/pre-commit-hooks
-      rev: v4.5.0
-      hooks:
-          - id: end-of-file-fixer
-          - id: trailing-whitespace
-    - repo: https://github.com/crate-ci/typos
-      rev: v1.16.24
-      hooks:
-          - id: typos
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.17
+    hooks:
+      - id: ruff-check
+        args: [--fix, --unsafe-fixes]
+      - id: ruff-format
+
+  # uv - project management
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.11.22
+    hooks:
+      - id: uv-lock
+      - id: uv-sync
+
+  # ty, astral's typechecker
+  - repo: local
+    hooks:
+      - id: ty
+        name: ty-check
+        entry: uv run ty check
+        language: system
+        types: [python]
