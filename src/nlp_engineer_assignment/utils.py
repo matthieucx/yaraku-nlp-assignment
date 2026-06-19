@@ -1,13 +1,16 @@
 import json
 import os
-from typing import Any, Type
+from typing import Any, Type, TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 import numpy as np
 import plotly
 import torch
-from loguru import logger, BasicHandlerConfig
+from loguru import logger
 from rich.logging import RichHandler
+
+if TYPE_CHECKING:
+    from loguru import BasicHandlerConfig
 
 
 def count_letters(text: str) -> np.ndarray:
