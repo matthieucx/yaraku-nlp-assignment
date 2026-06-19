@@ -27,18 +27,23 @@ MODEL_RETURN_VALUE = torch.tensor(
 
 @pytest.fixture(autouse=True, scope="module")
 def mock_settings():
-    with patch('nlp_engineer_assignment.api.Settings') as mock_settings_cls:
+    with patch("nlp_engineer_assignment.api.Settings") as mock_settings_cls:
         mock_settings_cls.return_value.artifacts_dir = "/dummy/dir"
         mock_settings_cls.return_value.clf_model_name = "dummy_model"
-        mock_settings_cls.return_value.clf_model_class_name = TransformerTokenClassification.__name__
+        mock_settings_cls.return_value.clf_model_class_name = (
+            TransformerTokenClassification.__name__
+        )
         yield
 
 
 @pytest.fixture(autouse=True, scope="module")
 def mock_model():
-    with patch("nlp_engineer_assignment.transformer.TransformerTokenClassification") as mock_transformer, \
-            patch('nlp_engineer_assignment.api.load_model') as mock_loader:
-
+    with (
+        patch(
+            "nlp_engineer_assignment.transformer.TransformerTokenClassification"
+        ) as mock_transformer,
+        patch("nlp_engineer_assignment.api.load_model") as mock_loader,
+    ):
         # Mock the TransformerTokenClassification behavior
         model_instance = mock_transformer.return_value
         model_instance.n_tokens = N_TOKENS
@@ -46,7 +51,7 @@ def mock_model():
         model_instance.return_value = MODEL_RETURN_VALUE
 
         # Mock the load_model function
-        mock_vocabs_mapping = {'a': 1}
+        mock_vocabs_mapping = {"a": 1}
         mock_loader.return_value = (model_instance, mock_vocabs_mapping, {})
 
         yield
@@ -70,10 +75,13 @@ def test_predict_empty_input(
     assert expected_empty in response.text
 
 
-@pytest.mark.parametrize("input_text, token_count", [
-    ("a" * (N_TOKENS + 1), N_TOKENS),  # Input too long
-    ("a" * (N_TOKENS - 1), N_TOKENS),  # Input too short
-])
+@pytest.mark.parametrize(
+    "input_text, token_count",
+    [
+        ("a" * (N_TOKENS + 1), N_TOKENS),  # Input too long
+        ("a" * (N_TOKENS - 1), N_TOKENS),  # Input too short
+    ],
+)
 def test_predict_non_fixed_size_input(
     mock_tokenize,
     input_text,
@@ -83,7 +91,9 @@ def test_predict_non_fixed_size_input(
     response = client.post("/predict", json={"text": input_text})
 
     assert response.status_code == 422
-    assert f"Input text must be tokenizable to exactly {N_TOKENS} tokens." in response.text
+    assert (
+        f"Input text must be tokenizable to exactly {N_TOKENS} tokens." in response.text
+    )
 
 
 def test_predict_regular_input(

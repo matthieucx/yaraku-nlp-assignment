@@ -12,7 +12,7 @@ from nlp_engineer_assignment.utils import (
     load_model,
     save_model,
     score,
-    tokenize
+    tokenize,
 )
 
 
@@ -20,20 +20,15 @@ def test_count_letters():
     assert np.array_equal(count_letters("hello"), np.array([0, 0, 0, 1, 0]))
     assert np.array_equal(count_letters("world"), np.array([0, 0, 0, 0, 0]))
     assert np.array_equal(
-        count_letters("hello hello"),
-        np.array([0, 0, 0, 1, 0, 0, 1, 1, 2, 2, 1])
+        count_letters("hello hello"), np.array([0, 0, 0, 1, 0, 0, 1, 1, 2, 2, 1])
     )
 
 
 def test_score():
-    assert score(np.array([[0, 1, 1, 0, 1]]),
-                 np.array([[0, 1, 1, 0, 1]])) == 1.0
-    assert score(np.array([[0, 1, 1, 0, 1]]),
-                 np.array([[1, 1, 0, 0, 1]])) == 0.6
-    assert score(np.array([[0, 1, 1, 0, 1]]),
-                 np.array([[0, 0, 0, 0, 0]])) == 0.4
-    assert score(np.array([[0, 1, 1, 0, 1]]),
-                 np.array([[1, 0, 0, 1, 0]])) == 0.0
+    assert score(np.array([[0, 1, 1, 0, 1]]), np.array([[0, 1, 1, 0, 1]])) == 1.0
+    assert score(np.array([[0, 1, 1, 0, 1]]), np.array([[1, 1, 0, 0, 1]])) == 0.6
+    assert score(np.array([[0, 1, 1, 0, 1]]), np.array([[0, 0, 0, 0, 0]])) == 0.4
+    assert score(np.array([[0, 1, 1, 0, 1]]), np.array([[1, 0, 0, 1, 0]])) == 0.0
 
 
 def test_tokenize_regular_input():
@@ -88,16 +83,21 @@ def test_tokenize_handle_vocab_types():
     tokenize_set = tokenize(string, vocab_set)
     tokenize_dict = tokenize(string, vocab_dict)
 
-    assert tokenize_list == tokenize_set == tokenize_dict, \
-        f"tokenize_list: {tokenize_list}, " \
-        f"tokenize_set: {tokenize_set}, " \
+    assert tokenize_list == tokenize_set == tokenize_dict, (
+        f"tokenize_list: {tokenize_list}, "
+        f"tokenize_set: {tokenize_set}, "
         f"tokenize_dict: {tokenize_dict}"
+    )
 
 
 def test_check_model_files_exists(tmp_path):
     model_name = "test_model"
     # Create the three files
-    for file_name in [f"{model_name}_state.pt", f"{model_name}_vocabs_mapping.json", f"{model_name}_params.json"]:
+    for file_name in [
+        f"{model_name}_state.pt",
+        f"{model_name}_vocabs_mapping.json",
+        f"{model_name}_params.json",
+    ]:
         (tmp_path / file_name).touch()
 
     assert check_model_files(str(tmp_path), model_name) is True
@@ -124,7 +124,8 @@ def test_save_artifacts(tmp_path):
         model=mock_model,
         model_params=model_params,
         vocabulary_mapping=vocab_mapping,
-        artifacts_dir=str(tmp_path))
+        artifacts_dir=str(tmp_path),
+    )
 
     # Ensure the files are created
     assert os.path.exists(tmp_path / f"{model_name}_state.pt")
@@ -150,22 +151,23 @@ def test_load_model_success(tmp_path):
     dummy_model_params = {"model": {"param1": "value1"}}
 
     # Create mock files
-    with open(tmp_path / f"{model_name}_vocabs_mapping.json", 'w') as f:
+    with open(tmp_path / f"{model_name}_vocabs_mapping.json", "w") as f:
         json.dump(dummy_vocabs_mapping, f)
-    with open(tmp_path / f"{model_name}_params.json", 'w') as f:
+    with open(tmp_path / f"{model_name}_params.json", "w") as f:
         json.dump(dummy_model_params, f)
 
     mock_model_class = Mock()
     mock_model_instance = Mock()
     mock_model_class.return_value = mock_model_instance
     # Mock external functions
-    with patch("nlp_engineer_assignment.utils.check_model_files", return_value=True), \
-            patch("torch.load", return_value=mock_state_dict):
-
+    with (
+        patch("nlp_engineer_assignment.utils.check_model_files", return_value=True),
+        patch("torch.load", return_value=mock_state_dict),
+    ):
         model, vocabs_mapping, model_params = load_model(
             model_name=model_name,
             artifacts_dir=artifacts_dir,
-            model_class=mock_model_class
+            model_class=mock_model_class,
         )
 
     assert model == mock_model_instance
@@ -178,7 +180,7 @@ def test_initialize_hyperparameters_exists(tmp_path):
     hparams_name = "dummy_file.json"
     hparams_path = tmp_path / hparams_name
     hparams_data = {"param1": 10, "param2": 20}
-    with open(hparams_path, 'w') as f:
+    with open(hparams_path, "w") as f:
         json.dump(hparams_data, f)
 
     hparams = load_hparams(str(tmp_path), hparams_name)

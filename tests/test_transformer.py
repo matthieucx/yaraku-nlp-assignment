@@ -13,7 +13,7 @@ from nlp_engineer_assignment.transformer import (
     TransformerTokenClassification,
     evaluate_classifier,
     predict_text,
-    train_classifier
+    train_classifier,
 )
 
 
@@ -26,8 +26,7 @@ def test_scaled_dot_product_attention_output_shape():
 
     output = attention(queries, keys, values)
 
-    assert output.shape == (
-        batch_size, tokens, d_v), "Output shape is incorrect"
+    assert output.shape == (batch_size, tokens, d_v), "Output shape is incorrect"
 
 
 def test_multihead_attention_output_shape():
@@ -37,8 +36,7 @@ def test_multihead_attention_output_shape():
 
     out = model(x)
 
-    assert out.shape == (batch_size, tokens,
-                         emb_size), "Output shape is incorrect"
+    assert out.shape == (batch_size, tokens, emb_size), "Output shape is incorrect"
 
 
 def test_multi_head_attention_assertion():
@@ -48,7 +46,8 @@ def test_multi_head_attention_assertion():
         _ = MultiHeadSelfAttention(emb=emb, heads=heads)
 
     assert "Embedding dimension must be divisible by the number of heads" in str(
-        excinfo.value)
+        excinfo.value
+    )
 
 
 def test_transformer_encoder_layer_output_shape():
@@ -58,8 +57,7 @@ def test_transformer_encoder_layer_output_shape():
     x = torch.rand(batch_size, tokens, emb)
 
     output = model(x)
-    assert output.shape == (batch_size, tokens,
-                            emb), "Output shape is incorrect"
+    assert output.shape == (batch_size, tokens, emb), "Output shape is incorrect"
 
 
 def test_basic_layer_norm_output_shape():
@@ -69,8 +67,7 @@ def test_basic_layer_norm_output_shape():
 
     output = layer_norm(x)
 
-    assert output.shape == (batch_size, tokens,
-                            emb_size), "Output shape is incorrect"
+    assert output.shape == (batch_size, tokens, emb_size), "Output shape is incorrect"
 
 
 def test_basic_layer_norm_forward():
@@ -89,8 +86,7 @@ def test_basic_layer_norm_forward():
 
     output = layer_norm(x)
 
-    assert torch.allclose(
-        output, expected), f"Expected: {expected}, but got: {output}"
+    assert torch.allclose(output, expected), f"Expected: {expected}, but got: {output}"
 
 
 def test_basic_layer_norm_zeros():
@@ -104,24 +100,25 @@ def test_basic_layer_norm_zeros():
 
     output = layer_norm(x)
 
-    assert torch.allclose(
-        output, x), f"Expected: {x}, but got: {output}"
+    assert torch.allclose(output, x), f"Expected: {x}, but got: {output}"
 
 
 def test_transformer_embeddings_output_shape():
     batch_size, tokens, emb, vocab_size = 8, 20, 64, 1000
-    model = TransformerEmbeddings(
-        vocab_size=vocab_size, emb=emb, n_tokens=tokens)
+    model = TransformerEmbeddings(vocab_size=vocab_size, emb=emb, n_tokens=tokens)
 
     x = torch.randint(0, vocab_size, (batch_size, tokens))
 
     output = model(x)
-    assert output.shape == (
-        batch_size, tokens, emb), "Output shape is incorrect"
+    assert output.shape == (batch_size, tokens, emb), "Output shape is incorrect"
 
 
 def test_transformer_token_classification_output_shape():
-    batch_size, tokens, emb, = 8, 20, 64
+    (
+        batch_size,
+        tokens,
+        emb,
+    ) = 8, 20, 64
     heads, dim_ff, vocab_size, n_classes = 2, 256, 1000, 10
 
     model = TransformerTokenClassification(
@@ -131,14 +128,13 @@ def test_transformer_token_classification_output_shape():
         dim_ff=dim_ff,
         vocab_size=vocab_size,
         n_tokens=tokens,
-        n_classes=n_classes
+        n_classes=n_classes,
     )
 
     x = torch.randint(0, vocab_size, (batch_size, tokens))
 
     output = model(x)
-    assert output.shape == (
-        batch_size, tokens, n_classes), "Output shape is incorrect"
+    assert output.shape == (batch_size, tokens, n_classes), "Output shape is incorrect"
 
 
 def test_train_classifier_empty_dataset():
@@ -154,47 +150,38 @@ def test_train_classifier_empty_dataset():
 
 def test_evaluate_classifier_empty_dataset():
     clf_model = TransformerTokenClassification(
-        depth=1,
-        emb=1,
-        heads=1,
-        dim_ff=1,
-        vocab_size=1,
-        n_tokens=1,
-        n_classes=1
+        depth=1, emb=1, heads=1, dim_ff=1, vocab_size=1, n_tokens=1, n_classes=1
     )
     test_inputs = []
     test_dataset = TokenClassificationDataset(test_inputs, vocabs=["a"])
 
     pred = evaluate_classifier(model=clf_model, test_dataset=test_dataset)
 
-    assert pred.shape == torch.tensor(
-        []).shape and pred.numel() == 0, "Returned tensor should be empty"
+    assert pred.shape == torch.tensor([]).shape and pred.numel() == 0, (
+        "Returned tensor should be empty"
+    )
 
 
 def test_predict_text():
 
     # Mock the tokenize function
     text = "token1 token3"
-    vocabs_mapping = {'token1': 1, " ": 2, "token3": 3}
+    vocabs_mapping = {"token1": 1, " ": 2, "token3": 3}
     mock_tokenize = Mock(return_value=["token1", " ", "token2"])
 
     # Mock the model
     mock_model = Mock()
     mock_model.n_tokens = 3
     mock_model.eval = Mock()
-    mock_model.return_value = torch.tensor([
-        [0.1, 0.2, 0.7],
-        [0.3, 0.4, 0.3],
-        [0.6, 0.2, 0.2]
-    ])
+    mock_model.return_value = torch.tensor(
+        [[0.1, 0.2, 0.7], [0.3, 0.4, 0.3], [0.6, 0.2, 0.2]]
+    )
 
     expected = [2, 1, 0]
 
     with patch("nlp_engineer_assignment.utils.tokenize", mock_tokenize):
         result = predict_text(
-            text=text,
-            model=mock_model,
-            vocabs_mapping=vocabs_mapping
+            text=text, model=mock_model, vocabs_mapping=vocabs_mapping
         )
 
     assert result == expected, "Predictions should match the mocked values"

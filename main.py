@@ -19,7 +19,7 @@ from nlp_engineer_assignment import (
     save_model,
     score,
     set_logger,
-    train_classifier
+    train_classifier,
 )
 
 
@@ -65,7 +65,7 @@ def main(seed: int = 777) -> tuple[str, str]:
         _, _, _ = load_model(
             artifacts_dir=artifacts_dir,
             model_name=model_name,
-            model_class=TransformerTokenClassification
+            model_class=TransformerTokenClassification,
         )
         logger.info("Found '{}' in {}", model_name, artifacts_dir)
 
@@ -76,34 +76,29 @@ def main(seed: int = 777) -> tuple[str, str]:
         logger.info("Model files not found. Proceeding to train a new model.")
 
     hparams_name = "optimal_hparams.json"
-    hparams = load_hparams(
-        artifacts_dir=artifacts_dir,
-        hparams_name=hparams_name
-    )
+    hparams = load_hparams(artifacts_dir=artifacts_dir, hparams_name=hparams_name)
 
     train_model(
         data_dir=data_dir,
         artifacts_dir=artifacts_dir,
         model_name=model_name,
         hparams=hparams,
-        seed=seed
+        seed=seed,
     )
 
     evaluate_model(
-        data_dir=data_dir,
-        artifacts_dir=artifacts_dir,
-        model_name=model_name
+        data_dir=data_dir, artifacts_dir=artifacts_dir, model_name=model_name
     )
 
     return model_name, artifacts_dir
 
 
 def train_model(
-        data_dir: str,
-        artifacts_dir: str,
-        model_name: str,
-        hparams: dict[str, Any] | None = None,
-        seed: int = 777
+    data_dir: str,
+    artifacts_dir: str,
+    model_name: str,
+    hparams: dict[str, Any] | None = None,
+    seed: int = 777,
 ) -> None:
     """Trains a model using the optimal hyperparameters and saves it.
 
@@ -129,7 +124,7 @@ def train_model(
     ###
 
     # Constructs the vocabulary as described in the assignment
-    vocabs = [chr(ord('a') + i) for i in range(0, 26)] + [' ']
+    vocabs = [chr(ord("a") + i) for i in range(0, 26)] + [" "]
 
     ###
     # Train
@@ -140,16 +135,11 @@ def train_model(
     train_dataset = TokenClassificationDataset(train_inputs, vocabs)
 
     if hparams is None:
-
         logger.info("Searching for optimal parameters...")
 
-        hparams, artifacts = optimize_classifier(
-            train_dataset, n_trials=30, seed=seed)
+        hparams, artifacts = optimize_classifier(train_dataset, n_trials=30, seed=seed)
         artifacts["optimal_hparams"] = hparams
-        save_artifacts(
-            artifacts_dir=artifacts_dir,
-            artifacts=artifacts
-        )
+        save_artifacts(artifacts_dir=artifacts_dir, artifacts=artifacts)
 
         logger.info("Found and saved optimal parameters")
         print_line()
@@ -157,13 +147,11 @@ def train_model(
     hparams["epochs"] = 10
     logger.info("Training model using parameters found...")
 
-    model, artifacts = train_classifier(
-        train_dataset=train_dataset,
-        hparams=hparams
-    )
+    model, artifacts = train_classifier(train_dataset=train_dataset, hparams=hparams)
 
     additional_artifacts = {
-        k: v for k, v in artifacts.items()
+        k: v
+        for k, v in artifacts.items()
         if k not in ["model_params", "vocabs_mapping"]
     }
 
@@ -173,15 +161,11 @@ def train_model(
         model=model,
         model_params=artifacts["model_params"],
         vocabulary_mapping=artifacts["vocabs_mapping"],
-        additional_artifacts=additional_artifacts
+        additional_artifacts=additional_artifacts,
     )
 
 
-def evaluate_model(
-        data_dir: str,
-        artifacts_dir: str,
-        model_name: str
-) -> None:
+def evaluate_model(data_dir: str, artifacts_dir: str, model_name: str) -> None:
     """Evaluates the model on the test set.
 
     Results are logged to the console.
@@ -200,26 +184,21 @@ def evaluate_model(
     model, vocabs_mapping, _ = load_model(
         artifacts_dir=artifacts_dir,
         model_name=model_name,
-        model_class=TransformerTokenClassification
+        model_class=TransformerTokenClassification,
     )
 
     test_data_path = os.path.join(data_dir, "test.txt")
     test_inputs = read_inputs(test_data_path)
     test_dataset = TokenClassificationDataset(
-        text_data=test_inputs,
-        vocabs_mapping=vocabs_mapping
+        text_data=test_inputs, vocabs_mapping=vocabs_mapping
     )
 
     logger.info("Testing model...")
 
-    pred = evaluate_classifier(
-        model=model,
-        test_dataset=test_dataset
-    )
+    pred = evaluate_classifier(model=model, test_dataset=test_dataset)
     pred_np = pred.numpy()
     golds = np.array(
-        [sample["target_seq"]
-            for sample in test_dataset]  # type: ignore[attr-defined]
+        [sample["target_seq"] for sample in test_dataset]  # type: ignore[attr-defined]
     )
 
     # Display a sample input and its prediction
@@ -234,7 +213,6 @@ def evaluate_model(
 
 
 if __name__ == "__main__":
-
     SEED = 777
     set_logger(level="INFO")
 
@@ -250,5 +228,5 @@ if __name__ == "__main__":
             host="0.0.0.0",
             port=8000,
             log_level="info",
-            workers=1
+            workers=1,
         )

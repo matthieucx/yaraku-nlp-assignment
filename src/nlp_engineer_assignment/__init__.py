@@ -4,7 +4,7 @@ from .transformer import (
     evaluate_classifier,
     optimize_classifier,
     predict_text,
-    train_classifier
+    train_classifier,
 )
 from .utils import (
     check_model_files,
@@ -17,7 +17,7 @@ from .utils import (
     save_model,
     score,
     set_logger,
-    tokenize
+    tokenize,
 )
 
 __all__ = [
@@ -37,5 +37,5 @@ __all__ = [
     "TransformerTokenClassification",
     "load_hparams",
     "predict_text",
-    "set_logger"
+    "set_logger",
 ]

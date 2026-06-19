@@ -58,10 +58,7 @@ def read_inputs(path: str) -> list:
     return lines
 
 
-def score(
-    golds: np.ndarray,
-    predictions: np.ndarray
-) -> float:
+def score(golds: np.ndarray, predictions: np.ndarray) -> float:
     """
     Compute the accuracy of the predictions
 
@@ -81,10 +78,10 @@ def score(
 
 
 def tokenize(
-        string: str,
-        vocabs: list[str] | set[str] | dict[str, int],
-        max_token_length: int | None = None,
-        verbose: bool = False
+    string: str,
+    vocabs: list[str] | set[str] | dict[str, int],
+    max_token_length: int | None = None,
+    verbose: bool = False,
 ) -> list[str]:
     """Tokenize a string using a vocabulary list.
 
@@ -118,10 +115,10 @@ def tokenize(
     if not vocabs:
         raise ValueError("Vocabulary must be non-empty.")
 
-    max_token_length = len(max(vocabs, key=len)
-                           ) if max_token_length is None else max_token_length
-    vocabs_hashed = set(vocabs) if not isinstance(
-        vocabs, (set, dict)) else vocabs
+    max_token_length = (
+        len(max(vocabs, key=len)) if max_token_length is None else max_token_length
+    )
+    vocabs_hashed = set(vocabs) if not isinstance(vocabs, (set, dict)) else vocabs
 
     tokens = []
     current_index = 0
@@ -131,7 +128,7 @@ def tokenize(
             if current_index + len_substring > len(string):
                 continue
 
-            substring = string[current_index:current_index + len_substring]
+            substring = string[current_index : current_index + len_substring]
 
             if substring in vocabs_hashed:
                 tokens.append(substring)
@@ -146,7 +143,10 @@ def tokenize(
                 tokens.append("<UNK>")
                 if verbose:
                     logger.info(
-                        "Found unknown token at position {pos} in string '{string}'", pos=current_index, string=string)
+                        "Found unknown token at position {pos} in string '{string}'",
+                        pos=current_index,
+                        string=string,
+                    )
             current_index += 1
 
     return tokens
@@ -172,18 +172,19 @@ def check_model_files(artifacts_dir: str, model_name: str) -> bool:
     expected_files = [
         f"{model_name}_state.pt",
         f"{model_name}_vocabs_mapping.json",
-        f"{model_name}_params.json"
+        f"{model_name}_params.json",
     ]
 
     files_exist = all(
-        os.path.exists(os.path.join(artifacts_dir, f))
-        for f in expected_files
+        os.path.exists(os.path.join(artifacts_dir, f)) for f in expected_files
     )
 
     return files_exist
 
 
-def _save_to_file(path: str, data: plt.Figure | plotly.graph_objs.Figure | dict) -> None:
+def _save_to_file(
+    path: str, data: plt.Figure | plotly.graph_objs.Figure | dict
+) -> None:
     """Save data to disk.
 
     Parameters:
@@ -200,7 +201,7 @@ def _save_to_file(path: str, data: plt.Figure | plotly.graph_objs.Figure | dict)
     if isinstance(data, dict):
         if not path.endswith(".json"):
             path += ".json"
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             json.dump(data, f, indent=4)
 
     elif isinstance(data, plt.Figure):
@@ -216,10 +217,7 @@ def _save_to_file(path: str, data: plt.Figure | plotly.graph_objs.Figure | dict)
         raise ValueError("Unsupported data type")
 
 
-def save_artifacts(
-        artifacts_dir: str,
-        artifacts: dict[str, Any]
-) -> None:
+def save_artifacts(artifacts_dir: str, artifacts: dict[str, Any]) -> None:
     """Save artifacts to disk.
 
     Parameters:
@@ -244,7 +242,7 @@ def save_model(
     model_params: dict,
     vocabulary_mapping: dict,
     artifacts_dir: str,
-    additional_artifacts: dict | None = None
+    additional_artifacts: dict | None = None,
 ) -> None:
     """Save the model, model parameters, and vocabulary mapping to disk.
 
@@ -267,18 +265,11 @@ def save_model(
 
     os.makedirs(artifacts_dir, exist_ok=True)
 
-    model_state_path = os.path.join(
-        artifacts_dir,
-        f"{model_name}_state.pt"
-    )
+    model_state_path = os.path.join(artifacts_dir, f"{model_name}_state.pt")
     vocabs_mapping_path = os.path.join(
-        artifacts_dir,
-        f"{model_name}_vocabs_mapping.json"
+        artifacts_dir, f"{model_name}_vocabs_mapping.json"
     )
-    model_params_path = os.path.join(
-        artifacts_dir,
-        f"{model_name}_params.json"
-    )
+    model_params_path = os.path.join(artifacts_dir, f"{model_name}_params.json")
 
     torch.save(model.state_dict(), model_state_path)
     _save_to_file(vocabs_mapping_path, vocabulary_mapping)
@@ -290,10 +281,9 @@ def save_model(
             _save_to_file(path, data)
 
 
-def load_model(model_name: str,
-               artifacts_dir: str,
-               model_class: Type[torch.nn.Module]
-               ) -> tuple[torch.nn.Module, dict[str, int], dict[str, Any]]:
+def load_model(
+    model_name: str, artifacts_dir: str, model_class: Type[torch.nn.Module]
+) -> tuple[torch.nn.Module, dict[str, int], dict[str, Any]]:
     """Load the model, model parameters, and vocabulary mapping from disk.
 
     Parameters:
@@ -323,23 +313,16 @@ def load_model(model_name: str,
     if not model_found:
         raise FileNotFoundError(f"Files not found for model {model_name}")
 
-    model_state_path = os.path.join(
-        artifacts_dir,
-        f"{model_name}_state.pt"
-    )
+    model_state_path = os.path.join(artifacts_dir, f"{model_name}_state.pt")
     vocabs_mapping_path = os.path.join(
-        artifacts_dir,
-        f"{model_name}_vocabs_mapping.json"
+        artifacts_dir, f"{model_name}_vocabs_mapping.json"
     )
-    model_params_path = os.path.join(
-        artifacts_dir,
-        f"{model_name}_params.json"
-    )
+    model_params_path = os.path.join(artifacts_dir, f"{model_name}_params.json")
 
-    with open(vocabs_mapping_path, 'r') as f:
+    with open(vocabs_mapping_path, "r") as f:
         vocabs_mapping = json.load(f)
 
-    with open(model_params_path, 'r') as f:
+    with open(model_params_path, "r") as f:
         model_params = json.load(f)
 
     model = model_class(**model_params["model"])
@@ -367,8 +350,7 @@ def load_hparams(artifacts_dir: str, hparams_name: str) -> dict[str, Any] | None
 
     hparams_path = os.path.join(artifacts_dir, hparams_name)
     if os.path.exists(hparams_path):
-
-        with open(hparams_path, 'r') as f:
+        with open(hparams_path, "r") as f:
             hparams = json.load(f)
 
         logger.info(f"Found {hparams_name} in {artifacts_dir}")

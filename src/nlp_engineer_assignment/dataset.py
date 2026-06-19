@@ -38,11 +38,17 @@ class TokenClassificationDataset(Dataset):
 
     """
 
-    def __init__(self, text_data: list, vocabs: list | None = None, vocabs_mapping: dict[str, int] | None = None):
+    def __init__(
+        self,
+        text_data: list,
+        vocabs: list | None = None,
+        vocabs_mapping: dict[str, int] | None = None,
+    ):
 
         if (vocabs_mapping is None) == (vocabs is None):
             raise TypeError(
-                "Exactly one of vocabs or vocabs_mapping must be specified.")
+                "Exactly one of vocabs or vocabs_mapping must be specified."
+            )
 
         self.data = text_data
         self.n_classes = 3
@@ -60,7 +66,7 @@ class TokenClassificationDataset(Dataset):
             if len(vocabs) == 0:
                 raise ValueError("vocabs must be non-empty.")
             # Map tokens to indices based on first appearance, with special tokens first
-            self.vocabs_mapping = {'<UNK>': 0}
+            self.vocabs_mapping = {"<UNK>": 0}
             next_idx = len(self.vocabs_mapping)
 
             seen_tokens = set(self.vocabs_mapping)
@@ -93,12 +99,19 @@ class TokenClassificationDataset(Dataset):
         """
 
         line = self.data[idx]
-        tokenized = tokenize(string=line, vocabs=self.vocabs_mapping,
-                             max_token_length=self.max_token_length)
+        tokenized = tokenize(
+            string=line,
+            vocabs=self.vocabs_mapping,
+            max_token_length=self.max_token_length,
+        )
         indices = [self.vocabs_mapping[token] for token in tokenized]
         target_seq = count_letters(line)
 
         indices_tensor = torch.tensor(indices, dtype=torch.long)
         target_seq_tensor = torch.tensor(target_seq, dtype=torch.long)
 
-        return {"indices": indices_tensor, "target_seq": target_seq_tensor, "text": line}
+        return {
+            "indices": indices_tensor,
+            "target_seq": target_seq_tensor,
+            "text": line,
+        }

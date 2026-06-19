@@ -9,7 +9,12 @@ from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 from starlette.responses import RedirectResponse
 
-from nlp_engineer_assignment import TransformerTokenClassification, load_model, predict_text, set_logger
+from nlp_engineer_assignment import (
+    TransformerTokenClassification,
+    load_model,
+    predict_text,
+    set_logger,
+)
 
 MODEL_CLASS_MAP = {
     TransformerTokenClassification.__name__: TransformerTokenClassification,
@@ -27,14 +32,11 @@ class TextRequest(BaseModel):
 class Settings(BaseSettings):
     artifacts_dir: str
     clf_model_name: str
-    clf_model_class_name: Annotated[
-        str, "'__name__' of the model class to use"]
+    clf_model_class_name: Annotated[str, "'__name__' of the model class to use"]
 
 
 def get_model_class(settings: Settings) -> Type[nn.Module]:
-    """Returns the class of the model to use for inference.
-
-    """
+    """Returns the class of the model to use for inference."""
 
     clf_model_class_name = settings.clf_model_class_name
 
@@ -46,18 +48,14 @@ def get_model_class(settings: Settings) -> Type[nn.Module]:
 
 @lru_cache
 def get_settings() -> Settings:
-    """Returns the settings for the application.
-
-    """
+    """Returns the settings for the application."""
 
     return Settings()
 
 
 @lru_cache
 def get_model() -> tuple[nn.Module, dict[str, int]]:
-    """Returns the selected model and its vocabulary.
-
-    """
+    """Returns the selected model and its vocabulary."""
 
     settings = get_settings()
     clf_model_class = get_model_class(settings)
@@ -72,9 +70,7 @@ def get_model() -> tuple[nn.Module, dict[str, int]]:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Initialize FastAPI and add variables
-
-    """
+    """Initialize FastAPI and add variables"""
 
     set_logger(level="DEBUG")
     logger.info("Initializing FastAPI app")
@@ -105,21 +101,19 @@ async def index() -> RedirectResponse:
     return RedirectResponse(url="/docs")
 
 
-@app.get('/info')
+@app.get("/info")
 async def info(
-    settings: Annotated[
-        Settings, Depends(get_settings)],
-    model_resources: Annotated[
-        tuple[nn.Module, dict[str, int]], Depends(get_model)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    model_resources: Annotated[tuple[nn.Module, dict[str, int]], Depends(get_model)],
 ) -> dict[str, Any]:
-    """Returns information about the model, what it does and how to use it for inference.
-
-    """
+    """Returns information about the model, what it does and how to use it for inference."""
 
     n_tokens = model_resources[0].n_tokens
     model_description = "Predicts the number of occurrences of each letter in the text up to that point."
-    format_requirements = (f"Text should be tokenizable to exactly {n_tokens} tokens. "
-                           "Unknown substrings are mapped to a single <UNK> token.")
+    format_requirements = (
+        f"Text should be tokenizable to exactly {n_tokens} tokens. "
+        "Unknown substrings are mapped to a single <UNK> token."
+    )
     return {
         "model_class": settings.clf_model_class_name,
         "model_name": settings.clf_model_name,
@@ -127,14 +121,8 @@ async def info(
         "model_type": "token classification",
         "model_description": model_description,
         "how_to_call": "POST /predict",
-        "input": {
-            "text": "string",
-            "format_requirements": format_requirements
-        },
-        "output": {
-            "prediction": "string"
-        }
-
+        "input": {"text": "string", "format_requirements": format_requirements},
+        "output": {"prediction": "string"},
     }
 
 
@@ -142,7 +130,8 @@ async def info(
 def predict(
     input_data: TextRequest,
     model_resources: Annotated[
-        tuple[nn.Module, dict[str, int]], Depends(get_model),
+        tuple[nn.Module, dict[str, int]],
+        Depends(get_model),
     ],
 ) -> PredictionResponse:
     """Predicts the number of occurrences of each letter in the text up to that point.
@@ -169,11 +158,7 @@ def predict(
     text = input_data.text
 
     try:
-        preds = predict_text(
-            text=text,
-            model=model,
-            vocabs_mapping=vocabs_mapping
-        )
+        preds = predict_text(text=text, model=model, vocabs_mapping=vocabs_mapping)
     except ValueError as e:
         logger.error(e)
         logger.error("Invalid input: '{}'", text)

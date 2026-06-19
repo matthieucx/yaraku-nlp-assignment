@@ -94,10 +94,7 @@ class ScaledDotProductAttention(nn.Module):
         self.d_k = d_k
 
     def forward(
-        self,
-        queries: torch.Tensor,
-        keys: torch.Tensor,
-        values: torch.Tensor
+        self, queries: torch.Tensor, keys: torch.Tensor, values: torch.Tensor
     ) -> torch.Tensor:
         """Compute the attention scores.
 
@@ -195,12 +192,15 @@ class MultiHeadSelfAttention(nn.Module):
         values = values.transpose(1, 2).contiguous().view(b * h, t, d_k)
         # Q, K, V: (batch * heads, tokens, head_dim)
 
-        attention_scores = self.attention(
-            queries=queries, keys=keys, values=values)
+        attention_scores = self.attention(queries=queries, keys=keys, values=values)
         # Attention scores: (batch * heads, tokens, head_dim)
 
-        concat_heads = attention_scores.view(b, h, t, d_k).transpose(
-            1, 2).contiguous().view(b, t, h * d_k)
+        concat_heads = (
+            attention_scores.view(b, h, t, d_k)
+            .transpose(1, 2)
+            .contiguous()
+            .view(b, t, h * d_k)
+        )
         # Concatenated heads: (batch, tokens, heads * head_dim = embedding)
 
         return self.merge_heads(concat_heads)
@@ -232,7 +232,9 @@ class TransformerEncoderLayer(nn.Module):
 
     """
 
-    def __init__(self, emb: int, heads: int, dim_ff: int | None = None, dropout_rate: float = 0.1):
+    def __init__(
+        self, emb: int, heads: int, dim_ff: int | None = None, dropout_rate: float = 0.1
+    ):
         super().__init__()
 
         self.emb = emb
@@ -246,9 +248,7 @@ class TransformerEncoderLayer(nn.Module):
 
         # Sub-layer 2: Feed-forward network
         self.ff = nn.Sequential(
-            nn.Linear(emb, self.dim_ff),
-            nn.ReLU(),
-            nn.Linear(self.dim_ff, emb)
+            nn.Linear(emb, self.dim_ff), nn.ReLU(), nn.Linear(self.dim_ff, emb)
         )
         self.dropout_2 = nn.Dropout(dropout_rate)
         self.layer_norm_2 = BasicLayerNorm(normalized_shape=emb)
@@ -302,13 +302,13 @@ class TransformerEmbeddings(nn.Module):
         Dropout rate.
     """
 
-    def __init__(self, vocab_size: int, emb: int, n_tokens: int, dropout_rate: float = 0.1):
+    def __init__(
+        self, vocab_size: int, emb: int, n_tokens: int, dropout_rate: float = 0.1
+    ):
         super().__init__()
 
-        self.tok_embedding = nn.Embedding(
-            num_embeddings=vocab_size, embedding_dim=emb)
-        self.pos_embedding = nn.Embedding(
-            num_embeddings=n_tokens, embedding_dim=emb)
+        self.tok_embedding = nn.Embedding(num_embeddings=vocab_size, embedding_dim=emb)
+        self.pos_embedding = nn.Embedding(num_embeddings=n_tokens, embedding_dim=emb)
         self.dropout = nn.Dropout(dropout_rate)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -329,8 +329,9 @@ class TransformerEmbeddings(nn.Module):
 
         """
 
-        position_indices = torch.arange(
-            x.size(1), device=x.device).unsqueeze(0).expand_as(x)
+        position_indices = (
+            torch.arange(x.size(1), device=x.device).unsqueeze(0).expand_as(x)
+        )
         tokens = self.tok_embedding(x)
         positions = self.pos_embedding(position_indices)
 
@@ -372,15 +373,15 @@ class TransformerTokenClassification(nn.Module):
     """
 
     def __init__(
-            self,
-            depth: int,
-            emb: int,
-            heads: int,
-            dim_ff: int,
-            vocab_size: int,
-            n_tokens: int,
-            n_classes: int,
-            dropout_rate: float = 0.1
+        self,
+        depth: int,
+        emb: int,
+        heads: int,
+        dim_ff: int,
+        vocab_size: int,
+        n_tokens: int,
+        n_classes: int,
+        dropout_rate: float = 0.1,
     ):
         super().__init__()
 
@@ -392,10 +393,14 @@ class TransformerTokenClassification(nn.Module):
         self.n_tokens = n_tokens
 
         self.embedding = TransformerEmbeddings(
-            vocab_size=vocab_size, emb=emb, n_tokens=n_tokens, dropout_rate=dropout_rate)
+            vocab_size=vocab_size, emb=emb, n_tokens=n_tokens, dropout_rate=dropout_rate
+        )
 
         self.transformer_encoder = nn.Sequential(
-            *[TransformerEncoderLayer(emb=emb, heads=heads, dim_ff=dim_ff) for _ in range(depth)]
+            *[
+                TransformerEncoderLayer(emb=emb, heads=heads, dim_ff=dim_ff)
+                for _ in range(depth)
+            ]
         )
 
         # Compute logits for each class, for each token
@@ -425,10 +430,10 @@ class TransformerTokenClassification(nn.Module):
 
 
 def train_epoch(
-        model: nn.Module,
-        dataloader: DataLoader,
-        optimizer: torch.optim.Optimizer,
-        criterion: torch.nn.modules.loss._Loss
+    model: nn.Module,
+    dataloader: DataLoader,
+    optimizer: torch.optim.Optimizer,
+    criterion: torch.nn.modules.loss._Loss,
 ) -> Tuple[list[float], list[float]]:
     """Train the model using the training dataloader for one epoch.
 
@@ -457,7 +462,6 @@ def train_epoch(
     batch_accuracies = []
 
     for batch in dataloader:
-
         indices = batch["indices"]
         targets = batch["target_seq"]
         curr_batch_size, curr_n_tokens = indices.size()
@@ -481,9 +485,9 @@ def train_epoch(
 
 
 def validate_epoch(
-        model: nn.Module,
-        dataloader: DataLoader,
-        criterion: nn.modules.loss._Loss,
+    model: nn.Module,
+    dataloader: DataLoader,
+    criterion: nn.modules.loss._Loss,
 ) -> Tuple[list[float], list[float]]:
     """Validate the model using the validation dataloader for one epoch.
 
@@ -511,7 +515,6 @@ def validate_epoch(
 
     with torch.no_grad():
         for batch in dataloader:
-
             indices = batch["indices"]
             targets = batch["target_seq"]
             curr_batch_size, curr_n_tokens = indices.size()
@@ -530,9 +533,7 @@ def validate_epoch(
 
 
 def evaluate_classifier(
-        model: nn.Module,
-        test_dataset: torch.utils.data.Dataset,
-        batch_size: int = 256
+    model: nn.Module, test_dataset: torch.utils.data.Dataset, batch_size: int = 256
 ) -> torch.Tensor:
     """Returns the predictions of the model on the test set, for further evaluation.
 
@@ -567,7 +568,6 @@ def evaluate_classifier(
 
     with torch.no_grad():
         for batch in dataloader:
-
             indices = batch["indices"]
             pred = model(indices)
             pred = pred.argmax(dim=-1)
@@ -619,14 +619,14 @@ def train_classifier(
     if hparams is None:
         hparams = {}
 
-    hparams['epochs'] = hparams.get('epochs', 8)
-    hparams['batch_size'] = hparams.get('batch_size', 256)
-    hparams['learning_rate'] = hparams.get('learning_rate', 5e-3)
-    hparams['depth'] = hparams.get('depth', 2)
-    hparams['emb'] = hparams.get('emb', 64)
-    hparams['heads'] = hparams.get('heads', 4)
-    hparams['dim_ff'] = hparams.get('dim_ff', 256)
-    hparams['dropout_rate'] = hparams.get('dropout_rate', 0.1)
+    hparams["epochs"] = hparams.get("epochs", 8)
+    hparams["batch_size"] = hparams.get("batch_size", 256)
+    hparams["learning_rate"] = hparams.get("learning_rate", 5e-3)
+    hparams["depth"] = hparams.get("depth", 2)
+    hparams["emb"] = hparams.get("emb", 64)
+    hparams["heads"] = hparams.get("heads", 4)
+    hparams["dim_ff"] = hparams.get("dim_ff", 256)
+    hparams["dropout_rate"] = hparams.get("dropout_rate", 0.1)
 
     n_tokens = train_dataset[0]["indices"].numel()
     n_classes = train_dataset.n_classes
@@ -639,26 +639,23 @@ def train_classifier(
     test_size = len(train_dataset) - train_size
     train, val = random_split(train_dataset, [train_size, test_size])
 
-    train_dataloader = DataLoader(
-        train, batch_size=hparams["batch_size"], shuffle=True)
-    val_dataloader = DataLoader(
-        val, batch_size=hparams["batch_size"], shuffle=True)
+    train_dataloader = DataLoader(train, batch_size=hparams["batch_size"], shuffle=True)
+    val_dataloader = DataLoader(val, batch_size=hparams["batch_size"], shuffle=True)
 
     vocab_size = len(train_dataset.vocabs_mapping)
 
     model = TransformerTokenClassification(
-        depth=hparams['depth'],
-        emb=hparams['emb'],
-        heads=hparams['heads'],
-        dim_ff=hparams['dim_ff'],
+        depth=hparams["depth"],
+        emb=hparams["emb"],
+        heads=hparams["heads"],
+        dim_ff=hparams["dim_ff"],
         vocab_size=vocab_size,
         n_tokens=n_tokens,
         n_classes=n_classes,
-        dropout_rate=hparams['dropout_rate']
+        dropout_rate=hparams["dropout_rate"],
     )
 
-    optimizer = torch.optim.Adam(
-        model.parameters(), lr=hparams['learning_rate'])
+    optimizer = torch.optim.Adam(model.parameters(), lr=hparams["learning_rate"])
     criterion = nn.CrossEntropyLoss()
 
     train_losses = []
@@ -670,25 +667,20 @@ def train_classifier(
     logger.info("Starting training")
 
     with Progress() as progress:
-        task_train = progress.add_task(
-            "[green]Training...[/]", total=hparams['epochs']
-        )
+        task_train = progress.add_task("[green]Training...[/]", total=hparams["epochs"])
 
-        for epoch in range(hparams['epochs']):
-
+        for epoch in range(hparams["epochs"]):
             batch_train_losses, batch_train_accuracy = train_epoch(
                 model=model,
                 dataloader=train_dataloader,
                 optimizer=optimizer,
-                criterion=criterion
+                criterion=criterion,
             )
             train_losses.append(batch_train_losses)
             train_accuracies.append(batch_train_accuracy)
 
             batch_val_losses, batch_val_accuracy = validate_epoch(
-                model=model,
-                dataloader=val_dataloader,
-                criterion=criterion
+                model=model, dataloader=val_dataloader, criterion=criterion
             )
             val_losses.append(batch_val_losses)
             val_accuracies.append(batch_val_accuracy)
@@ -696,31 +688,32 @@ def train_classifier(
             progress.advance(task_train)
             logger.debug(
                 "Epoch {}/{}: Train loss: {:.4f}, Train acc: {:.2f} / Val loss: {:.4f}, Val acc: {:.2f}",
-                epoch + 1, hparams['epochs'],
+                epoch + 1,
+                hparams["epochs"],
                 sum(batch_train_losses) / len(train_dataloader),
                 sum(batch_train_accuracy) / len(train_dataloader),
                 sum(batch_val_losses) / len(val_dataloader),
-                sum(batch_val_accuracy) / len(val_dataloader)
+                sum(batch_val_accuracy) / len(val_dataloader),
             )
 
     logger.info("Finished training")
 
     model_params = {
         "training": {
-            "epochs": hparams['epochs'],
-            "batch_size": hparams['batch_size'],
-            "learning_rate": hparams['learning_rate']
+            "epochs": hparams["epochs"],
+            "batch_size": hparams["batch_size"],
+            "learning_rate": hparams["learning_rate"],
         },
         "model": {
-            "depth": hparams['depth'],
-            "emb": hparams['emb'],
-            "heads": hparams['heads'],
-            "dim_ff": hparams['dim_ff'],
-            "dropout_rate": hparams['dropout_rate'],
+            "depth": hparams["depth"],
+            "emb": hparams["emb"],
+            "heads": hparams["heads"],
+            "dim_ff": hparams["dim_ff"],
+            "dropout_rate": hparams["dropout_rate"],
             "n_classes": n_classes,
             "n_tokens": n_tokens,
             "vocab_size": vocab_size,
-        }
+        },
     }
 
     # Flatten lists of lists
@@ -729,39 +722,34 @@ def train_classifier(
         val_losses=list(chain.from_iterable(val_losses)),
         train_metric=list(chain.from_iterable(train_accuracies)),
         val_metric=list(chain.from_iterable(val_accuracies)),
-        metric_name="Accuracy", loss_name="Cross-Entropy",
-        epochs=len(train_losses)
+        metric_name="Accuracy",
+        loss_name="Cross-Entropy",
+        epochs=len(train_losses),
     )
 
-    train_metrics = {
-        "loss": train_losses,
-        "accuracy": train_accuracies
-    }
+    train_metrics = {"loss": train_losses, "accuracy": train_accuracies}
 
-    val_metrics = {
-        "loss": val_losses,
-        "accuracy": val_accuracies
-    }
+    val_metrics = {"loss": val_losses, "accuracy": val_accuracies}
 
     artifacts = {
         "model_params": model_params,
         "vocabs_mapping": train_dataset.vocabs_mapping,
         "training_curves": fig,
         "train_metrics": train_metrics,
-        "val_metrics": val_metrics
+        "val_metrics": val_metrics,
     }
 
     return model, artifacts
 
 
 def plot_training_curves(
-        train_losses: list[float],
-        val_losses: list[float],
-        train_metric: list[float],
-        val_metric: list[float],
-        metric_name: str = "Performance metric",
-        loss_name: str = "Loss function",
-        epochs: int | None = None
+    train_losses: list[float],
+    val_losses: list[float],
+    train_metric: list[float],
+    val_metric: list[float],
+    metric_name: str = "Performance metric",
+    loss_name: str = "Loss function",
+    epochs: int | None = None,
 ) -> plt.Figure:
     """Plot the training/validation loss and performance metric curves.
 
@@ -787,33 +775,36 @@ def plot_training_curves(
 
     if epochs is None:
         epochs = 1
-        logger.warning(
-            "Epochs not specified, using 1 epoch for the training curves"
-        )
+        logger.warning("Epochs not specified, using 1 epoch for the training curves")
 
     epochs_train = np.linspace(0, epochs, len(train_losses))
     epochs_val = np.linspace(0, epochs, len(val_losses))
 
     # Plotting training and validation loss
-    ax1.plot(epochs_train, train_losses,
-             label=f"Training {loss_name.lower()} loss")
-    ax1.plot(epochs_val, val_losses,
-             label=f"Validation {loss_name.lower()} loss", color="orange")
+    ax1.plot(epochs_train, train_losses, label=f"Training {loss_name.lower()} loss")
+    ax1.plot(
+        epochs_val,
+        val_losses,
+        label=f"Validation {loss_name.lower()} loss",
+        color="orange",
+    )
 
-    ax1.set_xlabel('Epochs')
+    ax1.set_xlabel("Epochs")
     ax1.set_ylabel(f"{loss_name} loss")
-    ax1.legend(loc='upper right')
-    ax1.set_title(
-        f"Training and validation {loss_name.lower()} loss per epoch")
+    ax1.legend(loc="upper right")
+    ax1.set_title(f"Training and validation {loss_name.lower()} loss per epoch")
 
     # Plotting performance metric
-    ax2.plot(epochs_train, train_metric,
-             label=f"Training {metric_name.lower()}")
-    ax2.plot(epochs_val, val_metric,
-             label=f"Validation {metric_name.lower()}", color="orange")
-    ax2.set_xlabel('Epochs')
+    ax2.plot(epochs_train, train_metric, label=f"Training {metric_name.lower()}")
+    ax2.plot(
+        epochs_val,
+        val_metric,
+        label=f"Validation {metric_name.lower()}",
+        color="orange",
+    )
+    ax2.set_xlabel("Epochs")
     ax2.set_ylabel(f"{metric_name}")
-    ax2.legend(loc='lower right')
+    ax2.legend(loc="lower right")
     ax2.set_title(f"Training and validation {metric_name.lower()} per epoch")
 
     plt.tight_layout()
@@ -821,10 +812,7 @@ def plot_training_curves(
     return fig
 
 
-def objective(
-    trial: optuna.Trial,
-    train_dataset: TokenClassificationDataset
-) -> float:
+def objective(trial: optuna.Trial, train_dataset: TokenClassificationDataset) -> float:
     """Objective function for Optuna.
 
     The metric to minimize is the average validation loss for the last epoch.
@@ -848,32 +836,28 @@ def objective(
     """
 
     # Set ranges of hyperparameters to sample from
-    batch_size = trial.suggest_categorical(
-        'batch_size', [64, 128, 256, 512])
-    learning_rate = trial.suggest_float('lr', 1e-5, 1e-2, log=True)
-    depth = trial.suggest_int('num_layers', 1, 2)
-    emb = trial.suggest_categorical('emb_size', [64, 96, 128])
-    heads = trial.suggest_categorical('heads', [1, 2, 4])
-    dim_ff = trial.suggest_categorical('dim_ff', [128, 256, 512])
-    dropout_rate = trial.suggest_float('dropout_rate', 0.001, 0.3, log=True)
+    batch_size = trial.suggest_categorical("batch_size", [64, 128, 256, 512])
+    learning_rate = trial.suggest_float("lr", 1e-5, 1e-2, log=True)
+    depth = trial.suggest_int("num_layers", 1, 2)
+    emb = trial.suggest_categorical("emb_size", [64, 96, 128])
+    heads = trial.suggest_categorical("heads", [1, 2, 4])
+    dim_ff = trial.suggest_categorical("dim_ff", [128, 256, 512])
+    dropout_rate = trial.suggest_float("dropout_rate", 0.001, 0.3, log=True)
 
     epochs = 5
 
     hparams = {
-        'epochs': epochs,
-        'batch_size': batch_size,
-        'learning_rate': learning_rate,
-        'depth': depth,
-        'emb': emb,
-        'heads': heads,
-        'dim_ff': dim_ff,
-        'dropout_rate': dropout_rate
+        "epochs": epochs,
+        "batch_size": batch_size,
+        "learning_rate": learning_rate,
+        "depth": depth,
+        "emb": emb,
+        "heads": heads,
+        "dim_ff": dim_ff,
+        "dropout_rate": dropout_rate,
     }
 
-    _, artifacts = train_classifier(
-        train_dataset=train_dataset,
-        hparams=hparams
-    )
+    _, artifacts = train_classifier(train_dataset=train_dataset, hparams=hparams)
 
     last_epoch_losses = artifacts["val_metrics"]["loss"][-1]
 
@@ -881,10 +865,10 @@ def objective(
 
 
 def optimize_classifier(
-        train_dataset: TokenClassificationDataset,
-        seed: int = 777,
-        n_trials: int = 20,
-        verbose: bool = False
+    train_dataset: TokenClassificationDataset,
+    seed: int = 777,
+    n_trials: int = 20,
+    verbose: bool = False,
 ) -> Tuple[dict[str, Any], dict[str, Any]]:
     """Optimize the hyperparameters of a TransformerTokenClassification model.
 
@@ -919,8 +903,7 @@ def optimize_classifier(
         study_name="Tune TransformerTokenClassifier",
         direction="minimize",
         sampler=optuna.samplers.TPESampler(
-            seed=seed,
-            n_startup_trials=min(10, n_trials // 2)
+            seed=seed, n_startup_trials=min(10, n_trials // 2)
         ),
     )
 
@@ -949,9 +932,7 @@ def optimize_classifier(
 
 
 def predict_text(
-    text: str,
-    model: nn.Module,
-    vocabs_mapping: dict[str, int]
+    text: str, model: nn.Module, vocabs_mapping: dict[str, int]
 ) -> list[int]:
     """Predict the number of occurrences of each letter in the text up to that point.
 
@@ -975,10 +956,7 @@ def predict_text(
 
     model.eval()
 
-    tokens = tokenize(
-        string=text,
-        vocabs=vocabs_mapping
-    )
+    tokens = tokenize(string=text, vocabs=vocabs_mapping)
 
     n_tokens = model.n_tokens
 
