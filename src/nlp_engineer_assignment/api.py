@@ -50,7 +50,7 @@ def get_model_class(settings: Settings) -> Type[nn.Module]:
 def get_settings() -> Settings:
     """Returns the settings for the application."""
 
-    return Settings()
+    return Settings()  # ty: ignore[missing-argument] (instantiated by Pydantic)
 
 
 @lru_cache

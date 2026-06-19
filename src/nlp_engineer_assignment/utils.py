@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import plotly
 import torch
-from loguru import logger
+from loguru import logger, BasicHandlerConfig
 from rich.logging import RichHandler
 
 
@@ -374,7 +374,7 @@ def set_logger(level: str = "INFO") -> None:
         The logging level to use. Default is "INFO".
 
     """
-    rich_handler = {
+    rich_handler: BasicHandlerConfig = {
         "sink": RichHandler(markup=True),
         "format": "{message}",
         "level": level,

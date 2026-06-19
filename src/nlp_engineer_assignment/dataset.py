@@ -82,7 +82,7 @@ class TokenClassificationDataset(Dataset):
     def __len__(self) -> int:
         return len(self.data)
 
-    def __getitem__(self, idx: int) -> dict[str, Any]:
+    def __getitem__(self, index: int) -> dict[str, Any]:
         """Get a single data point (input, target, text).
 
         Parameters
@@ -98,7 +98,7 @@ class TokenClassificationDataset(Dataset):
 
         """
 
-        line = self.data[idx]
+        line = self.data[index]
         tokenized = tokenize(
             string=line,
             vocabs=self.vocabs_mapping,

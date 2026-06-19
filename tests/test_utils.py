@@ -1,7 +1,8 @@
 import json
 import os
 from unittest.mock import Mock, patch
-
+from typing import cast, Type
+import torch
 import numpy as np
 import pytest
 
@@ -167,7 +168,7 @@ def test_load_model_success(tmp_path):
         model, vocabs_mapping, model_params = load_model(
             model_name=model_name,
             artifacts_dir=artifacts_dir,
-            model_class=mock_model_class,
+            model_class=cast(Type[torch.nn.Module], mock_model_class),
         )
 
     assert model == mock_model_instance

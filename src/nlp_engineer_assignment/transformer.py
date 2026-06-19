@@ -533,7 +533,7 @@ def validate_epoch(
 
 
 def evaluate_classifier(
-    model: nn.Module, test_dataset: torch.utils.data.Dataset, batch_size: int = 256
+    model: nn.Module, test_dataset: TokenClassificationDataset, batch_size: int = 256
 ) -> torch.Tensor:
     """Returns the predictions of the model on the test set, for further evaluation.
 
