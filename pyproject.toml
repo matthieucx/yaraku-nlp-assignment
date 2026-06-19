@@ -31,6 +31,7 @@ build-backend = "uv_build"
 
 [tool.uv]
 exclude-newer = "7 days"
+exclude-newer-package = { starlette = false }
 
 [tool.typos.files]
 extend-exclude = ["data/*"]
